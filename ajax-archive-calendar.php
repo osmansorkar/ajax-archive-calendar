@@ -1,12 +1,12 @@
 <?php
 /*
-Plugin Name: Ajax Archive Calendar
-Plugin URI: http://projapotibd.com
-Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
-Author: osmansorkar
-Version: 2.5
-Author URI: http://www.projapotibd.com/
-*/
+  Plugin Name: Ajax Archive Calendar
+  Plugin URI: http://projapotibd.com
+  Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
+  Author: osmansorkar
+  Version: 2.5
+  Author URI: http://www.projapotibd.com/
+ */
 
 /**
  * Enqueue frontend scripts.
@@ -24,7 +24,7 @@ function ajax_ac_enqueue_scripts() {
  * Add function to widgets_init that'll load our widget.
  * @since 0.1
  */
-add_action( 'widgets_init', 'ajax_ac_int' );
+add_action('widgets_init', 'ajax_ac_int');
 
 /**
  * Register our widget.
@@ -33,289 +33,290 @@ add_action( 'widgets_init', 'ajax_ac_int' );
  * @since 0.1
  */
 function ajax_ac_int() {
-	register_widget( 'ajax_ac_widget' );
+	register_widget('ajax_ac_widget');
 }
-/***********************************************************/
+
+/* * ******************************************************** */
 
 class ajax_ac_widget extends WP_Widget {
-	
-function __construct() {
-	
+
+	function __construct() {
+
 		parent::__construct(
-	 		'ajax_ac_widget', // Base ID
+			'ajax_ac_widget', // Base ID
 			'Ajax Archive calendar', // Name
-			array( 'description' =>'It is Ajax Archive Calendar', 'text_domain' ) // Args
+			array('description' => 'It is Ajax Archive Calendar', 'text_domain') // Args
 		);
 	}
-	
 
-/**
-/********************** It will be sow home page*****************/
-	
-	function widget( $args, $instance ) {
+	/**
+	  /********************** It will be sow home page**************** */
+	function widget($args, $instance) {
 		global $wp_locale;
 
-		extract( $args );
-		$title = apply_filters('widget_title', $instance['title'] );
-				
+		extract($args);
+		$title = apply_filters('widget_title', $instance['title']);
+
 		/* Before widget (defined by themes). */
 		echo $before_widget;
-		
+
 		/* $title define by from */
-		if ( $title )
+		if ($title)
 		/* after title and before title defince by thime */
-			echo $before_title . $title .$after_title;
-			/* end title */
+			echo $before_title . $title . $after_title;
+		/* end title */
 		/* now start your degine */
 		?>
-        <div id="ajax_ac_widget">
-     <div class="select_ca">
-     <select name="month" id="my_month" >
-<?php
-$month = array();
-for ($i = 1; $i <= 12; $i++) {
-	$monthnum = zeroise($i, 2);
-	$month[$monthnum] = $wp_locale->get_month($i);
-}
-	
-global $m;
-if(empty($m) || $m==''){
-	$nowm=date('m');
-	$nowyear=date('Y');
-	}
-else {
-	$mmm = str_split($m, 2);
-	$nowm=zeroise(intval(substr($m, 4, 2)), 2);
-	$nowyear=$mmm['0'].$mmm['1'];
-	}
+		<div id="ajax_ac_widget">
+			<div class="select_ca">
+				<select name="month" id="my_month" >
+					<?php
+					$month = array();
+					for ($i = 1; $i <= 12; $i++) {
+						$monthnum = zeroise($i, 2);
+						$month[$monthnum] = $wp_locale->get_month($i);
+					}
 
-	
-foreach($month as $k=>$mu){
-	if($k==$nowm){
-	echo '<option value="'.$k.'" selected="selected" >'.$mu.'</option>';
-	}
-	else{
-	echo '<option value="'.$k.'">'.$mu.'</option>';	
-		}
-	}	
-	
-	?>
-     </select>
-  
-  <?php 
- $find = array("1","2","3","4","5","6","7","8","9","0",);
-$replace = array("১","২","৩","৪","৫","৬","৭","৮","৯","০",);
+					global $m;
+					if (empty($m) || $m == '') {
+						$nowm = date('m');
+						$nowyear = date('Y');
+					} else {
+						$mmm = str_split($m, 2);
+						$nowm = zeroise(intval(substr($m, 4, 2)), 2);
+						$nowyear = $mmm['0'] . $mmm['1'];
+					}
 
 
-  $taryear=$nowyear+5;
-  $yeararr=array();
-  $lassyear=$nowyear-5;
-  for($nowyearrr=$lassyear;$nowyearrr<=$taryear;$nowyearrr++){
-	  $yeararr[$nowyearrr]=$nowyearrr;	  	  
-  }
-     ?> 
-   
-      <select name="Year" id="my_year" >
-   <?php  foreach($yeararr as $k=>$year){
-	if ('bn' === substr(get_locale(), 0, 2)) {
-	   $year=str_replace($find,$replace,$year);
-	   }
-	   if($k==$nowyear){
-	echo '<option value="'.$k.'" selected="selected" >'.$year.'</option>';
-	}
-	else{
-	echo '<option value="'.$k.'">'.$year.'</option>';	
-		}
-		
-	   } ?>
+					foreach ($month as $k => $mu) {
+						if ($k == $nowm) {
+							echo '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
+						} else {
+							echo '<option value="' . $k . '">' . $mu . '</option>';
+						}
+					}
+					?>
+				</select>
 
-     </select>
-     </div><!--select ca -->
-     <div class="clear" style="clear:both; margin-bottom: 5px;"></div>
-        <div id="my_calender">
-      
-        </div><!--my_calender -->
-        <div class="aj-loging"><img src="<?php $url = plugin_dir_url(__FILE__); echo $url.'loading.gif'; ?>" /></div>
-<script type="text/javascript" >
-jQuery('#my_month').change(function(e) {
-	jQuery(".aj-loging").css("display","block");
-	jQuery("#my_calender").css("opacity","0.30");
-    var mon=jQuery(this).val();
-	var year=jQuery('#my_year').val();
-	var to=year+mon;
-	var data = {
-		action: 'ajax_ac',
-		ma: to,
-		
-	};
-
-	// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-	jQuery.get(ajaxurl, data, function(response) {
-		jQuery("#my_calender").html(response);
-			jQuery(".aj-loging").css("display","none");
-	jQuery("#my_calender").css("opacity","1.00");
-	});
-	
-});
-jQuery(document).ready(function(e) {
-    
-});
-</script>
-<script type="text/javascript" >
-jQuery('#my_year').change(function(e) {
-	jQuery(".aj-loging").css("display","block");
-	jQuery("#my_calender").css("opacity","0.30");
-    var mon=jQuery('#my_month').val();
-	var year=jQuery('#my_year').val();
-	var to=year+mon;
-	var data = {
-		action: 'ajax_ac',
-		ma: to,
-		
-		
-	};
-
-	// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-	jQuery.get(ajaxurl, data, function(response) {
-		jQuery("#my_calender").html(response);
-			jQuery(".aj-loging").css("display","none");
-	jQuery("#my_calender").css("opacity","1.00");
-	});
-	
-});
-jQuery(document).ready(function(e) {
-    
-});
-</script>
-
-<script type="text/javascript" >
+					<?php
+					$find = array("1", "2", "3", "4", "5", "6", "7", "8", "9", "0",);
+					$replace = array("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০",);
 
 
-jQuery(document).ready(function(e) {
-	<?php if(!isset($_GET['m'])){ echo 'var a='.date('Ym');} else echo 'var a='.$_GET['m'];  ?>
-	
- 	var data = {
-		action: 'ajax_ac',
-		ma:a,
-		
-	};
+					$taryear = $nowyear + 5;
+					$yeararr = array();
+					$lassyear = $nowyear - 5;
+					for ($nowyearrr = $lassyear; $nowyearrr <= $taryear; $nowyearrr++) {
+						$yeararr[$nowyearrr] = $nowyearrr;
+					}
+					?> 
 
-	// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-	jQuery.get(ajaxurl, data, function(response) {
-		
+				<select name="Year" id="my_year" >
+				<?php
+				foreach ($yeararr as $k => $year) {
+					if ('bn' === substr(get_locale(), 0, 2)) {
+						$year = str_replace($find, $replace, $year);
+					}
+					if ($k == $nowyear) {
+						echo '<option value="' . $k . '" selected="selected" >' . $year . '</option>';
+					} else {
+						echo '<option value="' . $k . '">' . $year . '</option>';
+					}
+				}
+				?>
 
-			
-		jQuery("#my_calender").html(response);
-	jQuery(".aj-loging").css("display","none");
-	jQuery("#my_calender").css("opacity","1.00");
+				</select>
+			</div><!--select ca -->
+			<div class="clear" style="clear:both; margin-bottom: 5px;"></div>
+			<div id="my_calender">
 
-	});   
-});
-</script>
-     
-        
-       </div>
+			</div><!--my_calender -->
+			<div class="aj-loging"><img src="<?php $url = plugin_dir_url(__FILE__);
+			echo $url . 'loading.gif'; ?>" /></div>
+			<script type="text/javascript" >
+				jQuery('#my_month').change(function (e) {
+					jQuery(".aj-loging").css("display", "block");
+					jQuery("#my_calender").css("opacity", "0.30");
+					var mon = jQuery(this).val();
+					var year = jQuery('#my_year').val();
+					var to = year + mon;
+					var data = {
+						action: 'ajax_ac',
+						ma: to,
 
-<?php
-		
-	
+					};
+
+					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+					jQuery.get(ajaxurl, data, function (response) {
+						jQuery("#my_calender").html(response);
+						jQuery(".aj-loging").css("display", "none");
+						jQuery("#my_calender").css("opacity", "1.00");
+					});
+
+				});
+				jQuery(document).ready(function (e) {
+
+				});
+			</script>
+			<script type="text/javascript" >
+				jQuery('#my_year').change(function (e) {
+					jQuery(".aj-loging").css("display", "block");
+					jQuery("#my_calender").css("opacity", "0.30");
+					var mon = jQuery('#my_month').val();
+					var year = jQuery('#my_year').val();
+					var to = year + mon;
+					var data = {
+						action: 'ajax_ac',
+						ma: to,
+
+					};
+
+					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+					jQuery.get(ajaxurl, data, function (response) {
+						jQuery("#my_calender").html(response);
+						jQuery(".aj-loging").css("display", "none");
+						jQuery("#my_calender").css("opacity", "1.00");
+					});
+
+				});
+				jQuery(document).ready(function (e) {
+
+				});
+			</script>
+
+			<script type="text/javascript" >
+
+
+				jQuery(document).ready(function (e) {
+		<?php if (!isset($_GET['m'])) {
+			echo 'var a=' . date('Ym');
+		} else echo 'var a=' . $_GET['m']; ?>
+
+					var data = {
+						action: 'ajax_ac',
+						ma: a,
+
+					};
+
+					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+					jQuery.get(ajaxurl, data, function (response) {
+
+
+
+						jQuery("#my_calender").html(response);
+						jQuery(".aj-loging").css("display", "none");
+						jQuery("#my_calender").css("opacity", "1.00");
+
+					});
+				});
+			</script>
+
+
+		</div>
+
+		<?php
 		/* now end your degine
-		
-		/*arter_widget define by thimed*/
+
+		  /*arter_widget define by thimed */
 		echo $after_widget;
 	}
-	
-/******************** It Update widget *******************************/
-function update( $new_instance, $old_instance ) {
+
+	/*	 * ****************** It Update widget ****************************** */
+
+	function update($new_instance, $old_instance) {
 		$instance = $old_instance;
-		$instance['title'] = strip_tags( $new_instance['title'] );
+		$instance['title'] = strip_tags($new_instance['title']);
 		return $instance;
 	}
-/************************ It is sow only admin menu**********************************/
-	
-	function form( $instance ) {
-		$defaults = array( 'title' => 'Archive Calendar');
-		$instance = wp_parse_args( (array) $instance, $defaults );
+
+	/*	 * ********************** It is sow only admin menu********************************* */
+
+	function form($instance) {
+		$defaults = array('title' => 'Archive Calendar');
+		$instance = wp_parse_args((array) $instance, $defaults);
 		?>
-   <p>
-			<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e('Title:', 'Recent post'); ?></label>
-			<input id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
-            
+		<p>
+			<label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:', 'Recent post'); ?></label>
+			<input id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
+
 		</p>
-        
-         		
+
+
 		<?php
-	}// end from function
-}// end widget class
+	}
+
+// end from function
+}
+
+// end widget class
 
 
-add_action( 'wp_ajax_ajax_ac', 'ajax_ac_callback' );
-add_action( 'wp_ajax_nopriv_ajax_ac', 'ajax_ac_callback' );
+add_action('wp_ajax_ajax_ac', 'ajax_ac_callback');
+add_action('wp_ajax_nopriv_ajax_ac', 'ajax_ac_callback');
 
 function ajax_ac_callback() {
-$ma=$_GET['ma'];
-ajax_ac_calendar($ma);
+	$ma = $_GET['ma'];
+	ajax_ac_calendar($ma);
 	die(); // this is required to return a proper result
 }
 
-
 function ajax_ac_calendar($ma, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
-	$m=& $ma;
+	$m = & $ma;
 	$cache = array();
-	$key = md5( get_locale() . $m . $monthnum . $year );
-	
-	if ( $cache = wp_cache_get( 'get_calendar', 'calendar' ) ) {
-		if ( is_array($cache) && isset( $cache[ $key ] ) ) {
-			if ( $echo ) {
-				echo apply_filters( 'get_calendar',  $cache[$key] );
+	$key = md5(get_locale() . $m . $monthnum . $year);
+
+	if ($cache = wp_cache_get('get_calendar', 'calendar')) {
+		if (is_array($cache) && isset($cache[$key])) {
+			if ($echo) {
+				echo apply_filters('get_calendar', $cache[$key]);
 				return;
 			} else {
-				return apply_filters( 'get_calendar',  $cache[$key] );
+				return apply_filters('get_calendar', $cache[$key]);
 			}
 		}
 	}
 
-	if ( !is_array($cache) )
+	if (!is_array($cache))
 		$cache = array();
 
 	// Quick check. If we have no posts at all, abort!
-	if ( !$posts ) {
+	if (!$posts) {
 		$gotsome = $wpdb->get_var("SELECT 1 as test FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish' LIMIT 1");
-		if ( !$gotsome ) {
-			$cache[ $key ] = '';
-			wp_cache_set( 'get_calendar', $cache, 'calendar' );
+		if (!$gotsome) {
+			$cache[$key] = '';
+			wp_cache_set('get_calendar', $cache, 'calendar');
 			return;
 		}
 	}
 
-	if ( isset($_GET['w']) )
-		$w = ''.intval($_GET['w']);
+	if (isset($_GET['w']))
+		$w = '' . intval($_GET['w']);
 
 	// week_begins = 0 stands for Sunday
 	$week_begins = intval(get_option('start_of_week'));
 
 	// Let's figure out when we are
-	if ( !empty($monthnum) && !empty($year) ) {
-		$thismonth = ''.zeroise(intval($monthnum), 2);
-		$thisyear = ''.intval($year);
-	} elseif ( !empty($w) ) {
+	if (!empty($monthnum) && !empty($year)) {
+		$thismonth = '' . zeroise(intval($monthnum), 2);
+		$thisyear = '' . intval($year);
+	} elseif (!empty($w)) {
 		// We need to get the month from MySQL
-		$thisyear = ''.intval(substr($m, 0, 4));
+		$thisyear = '' . intval(substr($m, 0, 4));
 		$d = (($w - 1) * 7) + 6; //it seems MySQL's weeks disagree with PHP's
 		$thismonth = $wpdb->get_var("SELECT DATE_FORMAT((DATE_ADD('{$thisyear}0101', INTERVAL $d DAY) ), '%m')");
-	} elseif ( !empty($m) ) {
-		$thisyear = ''.intval(substr($m, 0, 4));
-		if ( strlen($m) < 6 )
-				$thismonth = '01';
+	} elseif (!empty($m)) {
+		$thisyear = '' . intval(substr($m, 0, 4));
+		if (strlen($m) < 6)
+			$thismonth = '01';
 		else
-				$thismonth = ''.zeroise(intval(substr($m, 4, 2)), 2);
+			$thismonth = '' . zeroise(intval(substr($m, 4, 2)), 2);
 	} else {
 		$thisyear = gmdate('Y', current_time('timestamp'));
 		$thismonth = gmdate('m', current_time('timestamp'));
 	}
 
-	$unixmonth = mktime(0, 0 , 0, $thismonth, 1, $thisyear);
+	$unixmonth = mktime(0, 0, 0, $thismonth, 1, $thisyear);
 	$last_day = date('t', $unixmonth);
 
 	$calendar_output = '<table id="my-calendar">
@@ -324,17 +325,16 @@ function ajax_ac_calendar($ma, $echo = true) {
 
 	$myweek = array();
 
-	for ( $wdcount=0; $wdcount<=6; $wdcount++ ) {
-		$myweek[] = $wp_locale->get_weekday(($wdcount+$week_begins)%7);
+	for ($wdcount = 0; $wdcount <= 6; $wdcount++) {
+		$myweek[] = $wp_locale->get_weekday(($wdcount + $week_begins) % 7);
 	}
 
-	$barr=array('Saturday'=>'শনি','Sunday'=>'রবি','Monday'=>'সোম','Tuesday'=>'মঙ্গল','Wednesday'=>'বুধ','Thursday'=>'বৃহ','Friday'=>'শুক্র');
-	foreach ( $myweek as $wd ) {
+	$barr = array('Saturday' => 'শনি', 'Sunday' => 'রবি', 'Monday' => 'সোম', 'Tuesday' => 'মঙ্গল', 'Wednesday' => 'বুধ', 'Thursday' => 'বৃহ', 'Friday' => 'শুক্র');
+	foreach ($myweek as $wd) {
 		if ('bn' === substr(get_locale(), 0, 2)) {
-			$day_name=$barr[$wd];
-			}
-		else{
-		$day_name = $wp_locale->get_weekday_abbrev($wd);
+			$day_name = $barr[$wd];
+		} else {
+			$day_name = $wp_locale->get_weekday_abbrev($wd);
 		}
 		$wd = esc_attr($wd);
 		$calendar_output .= "\n\t\t<th class=\"$day_name\" scope=\"col\" title=\"$wd\">$day_name</th>";
@@ -379,186 +379,182 @@ function ajax_ac_calendar($ma, $echo = true) {
 	}
 
 	// See how much we should pad in the beginning
-	$pad = calendar_week_mod(date('w', $unixmonth)-$week_begins);
-	if ( 0 != $pad )
-		$calendar_output .= "\n\t\t".'<td colspan="'. esc_attr($pad) .'" class="pad">&nbsp;</td>';
+	$pad = calendar_week_mod(date('w', $unixmonth) - $week_begins);
+	if (0 != $pad)
+		$calendar_output .= "\n\t\t" . '<td colspan="' . esc_attr($pad) . '" class="pad">&nbsp;</td>';
 
 	$daysinmonth = intval(date('t', $unixmonth));
-	for ( $day = 1; $day <= $daysinmonth; ++$day ) {
-if ('bn' === substr(get_locale(), 0, 2)) {
-$dayrrr=array(
-'1'=>'১',
-'2'=>'২',
-'3'=>'৩',
-'4'=>'৪',
-'5'=>'৫',
-'6'=>'৬',
-'7'=>'৭',
-'8'=>'৮',
-'9'=>'৯',
-'10'=>'১০',
-'11'=>'১১',
-'12'=>'১২',
-'13'=>'১৩',
-'14'=>'১৪',
-'15'=>'১৫',
-'16'=>'১৬',
-'17'=>'১৭',
-'18'=>'১৮',
-'19'=>'১৯',
-'20'=>'২০',
-'21'=>'২১',
-'22'=>'২২',
-'23'=>'২৩',
-'24'=>'২৪',
-'25'=>'২৫',
-'26'=>'২৬',
-'27'=>'২৭',
-'28'=>'২৮',
-'29'=>'২৯',
-'30'=>'৩০',
-'31'=>'৩১',
-);
-}
-else {
-$dayrrr=array(
-'1'=>'1',
-'2'=>'2',
-'3'=>'3',
-'4'=>'4',
-'5'=>'5',
-'6'=>'6',
-'7'=>'7',
-'8'=>'8',
-'9'=>'9',
-'10'=>'10',
-'11'=>'11',
-'12'=>'12',
-'13'=>'13',
-'14'=>'14',
-'15'=>'15',
-'16'=>'16',
-'17'=>'17',
-'18'=>'18',
-'19'=>'19',
-'20'=>'20',
-'21'=>'21',
-'22'=>'22',
-'23'=>'23',
-'24'=>'24',
-'25'=>'25',
-'26'=>'26',
-'27'=>'27',
-'28'=>'28',
-'29'=>'29',
-'30'=>'30',
-'31'=>'31',
-);	
-	}
-		if ( isset($newrow) && $newrow )
+	for ($day = 1; $day <= $daysinmonth; ++$day) {
+		if ('bn' === substr(get_locale(), 0, 2)) {
+			$dayrrr = array(
+				'1' => '১',
+				'2' => '২',
+				'3' => '৩',
+				'4' => '৪',
+				'5' => '৫',
+				'6' => '৬',
+				'7' => '৭',
+				'8' => '৮',
+				'9' => '৯',
+				'10' => '১০',
+				'11' => '১১',
+				'12' => '১২',
+				'13' => '১৩',
+				'14' => '১৪',
+				'15' => '১৫',
+				'16' => '১৬',
+				'17' => '১৭',
+				'18' => '১৮',
+				'19' => '১৯',
+				'20' => '২০',
+				'21' => '২১',
+				'22' => '২২',
+				'23' => '২৩',
+				'24' => '২৪',
+				'25' => '২৫',
+				'26' => '২৬',
+				'27' => '২৭',
+				'28' => '২৮',
+				'29' => '২৯',
+				'30' => '৩০',
+				'31' => '৩১',
+			);
+		} else {
+			$dayrrr = array(
+				'1' => '1',
+				'2' => '2',
+				'3' => '3',
+				'4' => '4',
+				'5' => '5',
+				'6' => '6',
+				'7' => '7',
+				'8' => '8',
+				'9' => '9',
+				'10' => '10',
+				'11' => '11',
+				'12' => '12',
+				'13' => '13',
+				'14' => '14',
+				'15' => '15',
+				'16' => '16',
+				'17' => '17',
+				'18' => '18',
+				'19' => '19',
+				'20' => '20',
+				'21' => '21',
+				'22' => '22',
+				'23' => '23',
+				'24' => '24',
+				'25' => '25',
+				'26' => '26',
+				'27' => '27',
+				'28' => '28',
+				'29' => '29',
+				'30' => '30',
+				'31' => '31',
+			);
+		}
+		if (isset($newrow) && $newrow)
 			$calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
 		$newrow = false;
 
 
 
-		if ( $day == gmdate('j', current_time('timestamp')) && $thismonth == gmdate('m', current_time('timestamp')) && $thisyear == gmdate('Y', current_time('timestamp')) )
-		
+		if ($day == gmdate('j', current_time('timestamp')) && $thismonth == gmdate('m', current_time('timestamp')) && $thisyear == gmdate('Y', current_time('timestamp')))
 			$calendar_output .= '<td id="today"  >';
 		else
 			$calendar_output .= '<td class="notday">';
 
-		if ( in_array($day, $daywithpost) ) // any posts today?
-				$calendar_output .= '<a class="has-post" href="' . get_day_link( $thisyear, $thismonth, $day ) . '" title="' . esc_attr( $ak_titles_for_day[ $day ] ) . "\">$dayrrr[$day]</a>";
+		if (in_array($day, $daywithpost)) // any posts today?
+			$calendar_output .= '<a class="has-post" href="' . get_day_link($thisyear, $thismonth, $day) . '" title="' . esc_attr($ak_titles_for_day[$day]) . "\">$dayrrr[$day]</a>";
 		else
-			$calendar_output .='<span class="notpost">'.$dayrrr[$day].'</span>';
+			$calendar_output .= '<span class="notpost">' . $dayrrr[$day] . '</span>';
 		$calendar_output .= '</td>';
 
-		if ( 6 == calendar_week_mod(date('w', mktime(0, 0 , 0, $thismonth, $day, $thisyear))-$week_begins) )
+		if (6 == calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins))
 			$newrow = true;
 	}
 
-	$pad = 7 - calendar_week_mod(date('w', mktime(0, 0 , 0, $thismonth, $day, $thisyear))-$week_begins);
-	if ( $pad != 0 && $pad != 7 )
-		$calendar_output .= "\n\t\t".'<td class="pad" colspan="'. esc_attr($pad) .'">&nbsp;</td>';
+	$pad = 7 - calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins);
+	if ($pad != 0 && $pad != 7)
+		$calendar_output .= "\n\t\t" . '<td class="pad" colspan="' . esc_attr($pad) . '">&nbsp;</td>';
 
 	$calendar_output .= "\n\t</tr>\n\t</tbody>\n\t</table>";
 
-	$cache[ $key ] = $calendar_output;
-	wp_cache_set( 'get_calendar', $cache, 'calendar' );
+	$cache[$key] = $calendar_output;
+	wp_cache_set('get_calendar', $cache, 'calendar');
 
-	if ( $echo )
-		echo apply_filters( 'get_calendar',  $calendar_output );
+	if ($echo)
+		echo apply_filters('get_calendar', $calendar_output);
 	else
-		return apply_filters( 'get_calendar',  $calendar_output );
-
+		return apply_filters('get_calendar', $calendar_output);
 }
 
-function ajax_ac_head(){?>
-<script type="text/javascript">
-var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-</script>
+function ajax_ac_head() {
+	?>
+	<script type="text/javascript">
+	    var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+	</script>
 
-<style type="text/css">
+	<style type="text/css">
 
-#ajax_ac_widget th {
-    background: none repeat scroll 0 0 #008000;
-    color: #FFFFFF;
-    font-weight: normal;
-    padding: 5px 1px;
-    text-align: center;
-	 font-size: 16px;
-}
-#ajax_ac_widget {
-    padding: 5px;
+		#ajax_ac_widget th {
+			background: none repeat scroll 0 0 #008000;
+			color: #FFFFFF;
+			font-weight: normal;
+			padding: 5px 1px;
+			text-align: center;
+			font-size: 16px;
+		}
+		#ajax_ac_widget {
+			padding: 5px;
+		}
+
+		#ajax_ac_widget td {
+			border: 1px solid #CCCCCC;
+			text-align: center;
+		}
+
+		#my-calendar a {
+			background: none repeat scroll 0 0 #008000;
+			color: #FFFFFF;
+			display: block;
+			padding: 6px 0;
+			width: 100% !important;
+			border-radius:20px;
+		}
+		#my-calendar{
+			width:100%;
+		}
+
+
+		#my_calender span {
+			display: block;
+			padding: 6px 0;
+			width: 100% !important;
+			background-color:#999;
+			border-radius:20px;
+		}
+
+		#today a,#today span {
+			background: none repeat scroll 0 0 #FF0000 !important;
+			color: #FFFFFF;
+			border-radius:20px;
+		}
+		#ajax_ac_widget #my_year {
+			float: right;
+		}
+		.select_ca #my_month {
+			float: left;
+		}
+		.aj-loging > img {
+			margin-left: 140px;
+			margin-top: -100px;
+			position: absolute;
+		}
+
+	</style>
+	<?php
 }
 
-#ajax_ac_widget td {
-    border: 1px solid #CCCCCC;
-    text-align: center;
-}
-
-#my-calendar a {
-    background: none repeat scroll 0 0 #008000;
-    color: #FFFFFF;
-    display: block;
-    padding: 6px 0;
-    width: 100% !important;
-	border-radius:20px;
-}
-#my-calendar{
-	width:100%;
-}
-
-
-#my_calender span {
-    display: block;
-    padding: 6px 0;
-    width: 100% !important;
-	background-color:#999;
-	border-radius:20px;
-}
-
-#today a,#today span {
-       background: none repeat scroll 0 0 #FF0000 !important;
-    color: #FFFFFF;
-	border-radius:20px;
-}
-#ajax_ac_widget #my_year {
-    float: right;
-}
-.select_ca #my_month {
-    float: left;
-}
-.aj-loging > img {
-    margin-left: 140px;
-    margin-top: -100px;
-    position: absolute;
-}
-
-</style>
-<?php	
-	}
-	add_filter('wp_head', 'ajax_ac_head');
-	
-
-?>
+add_filter('wp_head', 'ajax_ac_head');
