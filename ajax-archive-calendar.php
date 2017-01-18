@@ -106,8 +106,8 @@ else{
 	
 global $m;
 if(empty($m) || $m==''){
-	$nowm=date(m);
-	$nowyear=date(Y);
+	$nowm=date('m');
+	$nowyear=date('Y');
 	}
 else {
 	$mmm = str_split($m, 2);
@@ -223,7 +223,7 @@ jQuery(document).ready(function(e) {
 
 jQuery(document).ready(function(e) {
 	<?php echo 'var bna='.$bn.';' ?>
-	<?php if(!isset($_GET['m'])){ echo 'var a='.date(Ym);} else echo 'var a='.$_GET['m'];  ?>
+	<?php if(!isset($_GET['m'])){ echo 'var a='.date('Ym');} else echo 'var a='.$_GET['m'];  ?>
 	
  	var data = {
 		action: 'ajax_ac',
@@ -641,7 +641,7 @@ var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
 </style>
 <?php	
 	}
-	add_filter('wp_head',ajax_ac_head);
+	add_filter('wp_head', 'ajax_ac_head');
 	
 
 ?>
