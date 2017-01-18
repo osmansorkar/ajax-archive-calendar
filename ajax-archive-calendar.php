@@ -53,11 +53,11 @@ function __construct() {
 /********************** It will be sow home page*****************/
 	
 	function widget( $args, $instance ) {
+		global $wp_locale;
+
 		extract( $args );
 		$title = apply_filters('widget_title', $instance['title'] );
-		
-		$bn = $instance['bangla'];
-		
+				
 		/* Before widget (defined by themes). */
 		echo $before_widget;
 		
@@ -71,38 +71,12 @@ function __construct() {
         <div id="ajax_ac_widget">
      <div class="select_ca">
      <select name="month" id="my_month" >
-
-<?php if($bn=='1'){ $month=array(
-	'01'=>'জানুয়ারী',
-	'02'=>'ফেব্রুয়ারী',
-	'03'=>'মার্চ',
-	'04'=>'এপ্রিল',
-	'05'=>'মে',
-	'06'=>'জুন',
-	'07'=>'জুলাই',
-	'08'=>'আগষ্ট',
-	'09'=>'সেপ্টেম্বর',
-	'10'=>'অক্টবর',
-	'11'=>'নভেম্বর',
-	'12'=>'ডিসেম্বর',
-	);
+<?php
+$month = array();
+for ($i = 1; $i <= 12; $i++) {
+	$monthnum = zeroise($i, 2);
+	$month[$monthnum] = $wp_locale->get_month($i);
 }
-else{
-	$month=array(
-	'01'=>'January',
-	'02'=>'February',
-	'03'=>'March',
-	'04'=>'April',
-	'05'=>'May',
-	'06'=>'Jun',
-	'07'=>'July',
-	'08'=>'August',
-	'09'=>'Septembar',
-	'10'=>'Octobor',
-	'11'=>'Novembar',
-	'12'=>'Decembar',
-	);
-	}
 	
 global $m;
 if(empty($m) || $m==''){
@@ -143,7 +117,7 @@ $replace = array("১","২","৩","৪","৫","৬","৭","৮","৯","০",);
    
       <select name="Year" id="my_year" >
    <?php  foreach($yeararr as $k=>$year){
-	   if($bn=='1'){
+	if ('bn' === substr(get_locale(), 0, 2)) {
 	   $year=str_replace($find,$replace,$year);
 	   }
 	   if($k==$nowyear){
@@ -166,14 +140,12 @@ $replace = array("১","২","৩","৪","৫","৬","৭","৮","৯","০",);
 jQuery('#my_month').change(function(e) {
 	jQuery(".aj-loging").css("display","block");
 	jQuery("#my_calender").css("opacity","0.30");
-	<?php echo 'var bna='.$bn.';' ?>
     var mon=jQuery(this).val();
 	var year=jQuery('#my_year').val();
 	var to=year+mon;
 	var data = {
 		action: 'ajax_ac',
 		ma: to,
-		bn:bna,
 		
 	};
 
@@ -193,14 +165,12 @@ jQuery(document).ready(function(e) {
 jQuery('#my_year').change(function(e) {
 	jQuery(".aj-loging").css("display","block");
 	jQuery("#my_calender").css("opacity","0.30");
-	<?php echo 'var bna='.$bn.';' ?>
     var mon=jQuery('#my_month').val();
 	var year=jQuery('#my_year').val();
 	var to=year+mon;
 	var data = {
 		action: 'ajax_ac',
 		ma: to,
-		bn: bna
 		
 		
 	};
@@ -222,13 +192,11 @@ jQuery(document).ready(function(e) {
 
 
 jQuery(document).ready(function(e) {
-	<?php echo 'var bna='.$bn.';' ?>
 	<?php if(!isset($_GET['m'])){ echo 'var a='.date('Ym');} else echo 'var a='.$_GET['m'];  ?>
 	
  	var data = {
 		action: 'ajax_ac',
 		ma:a,
-		bn:bna,
 		
 	};
 
@@ -261,21 +229,18 @@ jQuery(document).ready(function(e) {
 function update( $new_instance, $old_instance ) {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags( $new_instance['title'] );
-		$instance['bangla'] = strip_tags( $new_instance['bangla'] );
 		return $instance;
 	}
 /************************ It is sow only admin menu**********************************/
 	
 	function form( $instance ) {
-		$defaults = array( 'title' => 'Archive Calendar','bangla'=>'0');
+		$defaults = array( 'title' => 'Archive Calendar');
 		$instance = wp_parse_args( (array) $instance, $defaults );
 		?>
    <p>
 			<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e('Title:', 'Recent post'); ?></label>
 			<input id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
             
-            <label for="<?php echo $this->get_field_id( 'bangla' ); ?>"><?php _e('For Bangla type 1, Default 0 for English:', 'Recent post'); ?></label>
-			<input id="<?php echo $this->get_field_id( 'bangla' ); ?>" name="<?php echo $this->get_field_name( 'bangla' ); ?>" value="<?php echo $instance['bangla']; ?>" style="width:100%;" />
 		</p>
         
          		
@@ -289,13 +254,12 @@ add_action( 'wp_ajax_nopriv_ajax_ac', 'ajax_ac_callback' );
 
 function ajax_ac_callback() {
 $ma=$_GET['ma'];
-$bn=$_GET['bn'];
-ajax_ac_calendar($ma,$bn);
+ajax_ac_calendar($ma);
 	die(); // this is required to return a proper result
 }
 
 
-function ajax_ac_calendar($ma,$bn,$initial = true, $echo = true) {
+function ajax_ac_calendar($ma,$initial = true, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
 	$m=& $ma;
 	$cache = array();
@@ -383,7 +347,7 @@ function ajax_ac_calendar($ma,$bn,$initial = true, $echo = true) {
 
 	foreach ( $myweek as $wd ) {
 $barr=array('Saturday'=>'শনি','Sunday'=>'রবি','Monday'=>'সোম','Tuesday'=>'মঙ্গল','Wednesday'=>'বুধ','Thursday'=>'বৃহ','Friday'=>'শুক্র');
-		if($bn=='1'){
+		if ('bn' === substr(get_locale(), 0, 2)) {
 			$day_name=$barr[$wd];
 			}
 		else{
@@ -468,7 +432,7 @@ $barr=array('Saturday'=>'শনি','Sunday'=>'রবি','Monday'=>'সোম',
 
 	$daysinmonth = intval(date('t', $unixmonth));
 	for ( $day = 1; $day <= $daysinmonth; ++$day ) {
-if($bn==1){
+if ('bn' === substr(get_locale(), 0, 2)) {
 $dayrrr=array(
 '1'=>'১',
 '2'=>'২',
