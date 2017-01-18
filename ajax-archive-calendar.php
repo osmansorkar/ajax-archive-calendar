@@ -259,7 +259,7 @@ ajax_ac_calendar($ma);
 }
 
 
-function ajax_ac_calendar($ma,$initial = true, $echo = true) {
+function ajax_ac_calendar($ma, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
 	$m=& $ma;
 	$cache = array();
@@ -345,13 +345,13 @@ function ajax_ac_calendar($ma,$initial = true, $echo = true) {
 		$myweek[] = $wp_locale->get_weekday(($wdcount+$week_begins)%7);
 	}
 
+	$barr=array('Saturday'=>'শনি','Sunday'=>'রবি','Monday'=>'সোম','Tuesday'=>'মঙ্গল','Wednesday'=>'বুধ','Thursday'=>'বৃহ','Friday'=>'শুক্র');
 	foreach ( $myweek as $wd ) {
-$barr=array('Saturday'=>'শনি','Sunday'=>'রবি','Monday'=>'সোম','Tuesday'=>'মঙ্গল','Wednesday'=>'বুধ','Thursday'=>'বৃহ','Friday'=>'শুক্র');
 		if ('bn' === substr(get_locale(), 0, 2)) {
 			$day_name=$barr[$wd];
 			}
 		else{
-		$day_name = (true == $initial) ? $wp_locale->get_weekday_abbrev($wd) : $wp_locale->get_weekday_abbrev($wd);
+		$day_name = $wp_locale->get_weekday_abbrev($wd);
 		}
 		$wd = esc_attr($wd);
 		$calendar_output .= "\n\t\t<th class=\"$day_name\" scope=\"col\" title=\"$wd\">$day_name</th>";
