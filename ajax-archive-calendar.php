@@ -386,42 +386,33 @@ function ajax_ac_calendar($ma, $echo = true) {
 	<tr>';
 
 	// Get days with posts
-	$dayswithposts = $wpdb->get_results("SELECT DISTINCT DAYOFMONTH(post_date)
-		FROM $wpdb->posts WHERE post_date >= '{$thisyear}-{$thismonth}-01 00:00:00'
-		AND post_type = 'post' AND post_status = 'publish'
-		AND post_date <= '{$thisyear}-{$thismonth}-{$last_day} 23:59:59'", ARRAY_N);
-	if ( $dayswithposts ) {
-		foreach ( (array) $dayswithposts as $daywith ) {
-			$daywithpost[] = $daywith[0];
-		}
-	} else {
-		$daywithpost = array();
-	}
+	$dayswithposts = get_posts(array(
+		'suppress_filters' => false,
+		'post_type' => 'post',
+		'post_status' => 'publish',
+		'monthnum' => $thismonth,
+		'year' => $thisyear,
+	));
 
 	if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false)
 		$ak_title_separator = "\n";
 	else
 		$ak_title_separator = ', ';
 
+	$daywithpost = array();
 	$ak_titles_for_day = array();
-	$ak_post_titles = $wpdb->get_results("SELECT ID, post_title, DAYOFMONTH(post_date) as dom "
-		."FROM $wpdb->posts "
-		."WHERE post_date >= '{$thisyear}-{$thismonth}-01 00:00:00' "
-		."AND post_date <= '{$thisyear}-{$thismonth}-{$last_day} 23:59:59' "
-		."AND post_type = 'post' AND post_status = 'publish'"
-	);
-	if ( $ak_post_titles ) {
-		foreach ( (array) $ak_post_titles as $ak_post_title ) {
+	if ($dayswithposts) {
+		foreach ((array) $dayswithposts as $ak_post) {
+			$daywith = date('d', strtotime($ak_post->post_date));
+			if (!in_array($daywith, $daywithpost)) {
+				$daywithpost[] = $daywith;
+			}
 
-				/** This filter is documented in wp-includes/post-template.php */
-				$post_title = esc_attr( apply_filters( 'the_title', $ak_post_title->post_title, $ak_post_title->ID ) );
-
-				if ( empty($ak_titles_for_day['day_'.$ak_post_title->dom]) )
-					$ak_titles_for_day['day_'.$ak_post_title->dom] = '';
-				if ( empty($ak_titles_for_day["$ak_post_title->dom"]) ) // first one
-					$ak_titles_for_day["$ak_post_title->dom"] = $post_title;
-				else
-					$ak_titles_for_day["$ak_post_title->dom"] .= $ak_title_separator . $post_title;
+			$post_title = esc_attr(get_the_title($ak_post));
+			if (empty($ak_titles_for_day[$daywith])) // first one
+				$ak_titles_for_day[$daywith] = $post_title;
+			else
+				$ak_titles_for_day[$daywith] .= $ak_title_separator . $post_title;
 		}
 	}
 
