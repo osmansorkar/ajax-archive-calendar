@@ -288,6 +288,12 @@ add_action( 'wp_ajax_ajax_ac', 'ajax_ac_callback' );
 add_action( 'wp_ajax_nopriv_ajax_ac', 'ajax_ac_callback' );
 
 function ajax_ac_callback() {
+$ma=$_GET['ma'];
+$bn=$_GET['bn'];
+ajax_ac_calendar($ma,$bn);
+	die(); // this is required to return a proper result
+}
+
 
 function ajax_ac_calendar($ma,$bn,$initial = true, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
@@ -568,12 +574,6 @@ $dayrrr=array(
 	else
 		return apply_filters( 'get_calendar',  $calendar_output );
 
-}
-
-$ma=$_GET['ma'];
-$bn=$_GET['bn'];
-ajax_ac_calendar($ma,$bn);
-	die(); // this is required to return a proper result
 }
 
 function ajax_ac_head(){?>
