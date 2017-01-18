@@ -49,8 +49,7 @@ class ajax_ac_widget extends WP_Widget {
 		);
 	}
 
-	/**
-	  /********************** It will be sow home page**************** */
+	/********************** It will be sow home page**************** */
 	function widget($args, $instance) {
 		global $wp_locale;
 
