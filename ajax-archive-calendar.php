@@ -9,10 +9,21 @@ Author URI: http://www.projapotibd.com/
 */
 
 /**
+ * Enqueue frontend scripts.
+ */
+add_action('wp_enqueue_scripts', 'ajax_ac_enqueue_scripts');
+
+/**
+ * Make sure we have jquery available.
+ */
+function ajax_ac_enqueue_scripts() {
+	wp_enqueue_script('jquery');
+}
+
+/**
  * Add function to widgets_init that'll load our widget.
  * @since 0.1
  */
-wp_enqueue_script( 'jquery' );
 add_action( 'widgets_init', 'ajax_ac_int' );
 
 /**
