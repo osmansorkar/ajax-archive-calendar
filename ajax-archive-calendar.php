@@ -299,7 +299,7 @@ function ajax_ac_calendar($ma,$bn,$initial = true, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
 	$m=& $ma;
 	$cache = array();
-	$key = md5( $m . $monthnum . $year );
+	$key = md5( get_locale() . $m . $monthnum . $year );
 	
 	if ( $cache = wp_cache_get( 'get_calendar', 'calendar' ) ) {
 		if ( is_array($cache) && isset( $cache[ $key ] ) ) {
