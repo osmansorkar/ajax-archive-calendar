@@ -332,10 +332,7 @@ function ajax_ac_calendar($ma, $echo = true) {
 			ORDER BY post_date ASC
 			LIMIT 1");
 
-	/* translators: Calendar caption: 1: month name, 2: 4-digit year */
-	$calendar_caption = _x('%1$s %2$s', 'calendar caption');
 	$calendar_output = '<table id="my-calendar">
-	<!-- <caption>' . sprintf($calendar_caption, $wp_locale->get_month($thismonth), date('Y', $unixmonth)) . '</caption> --->
 	<thead>
 	<tr>';
 
