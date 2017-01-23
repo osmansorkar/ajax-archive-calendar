@@ -574,3 +574,16 @@ function ajax_ac_head() {
 }
 
 add_filter('wp_head', 'ajax_ac_head');
+
+/**
+ * Workaround WPML bug with get_day_link() function.
+ * 
+ * @param string $url
+ * @return stringe
+ */
+function ajax_ac_permalinks( $url ) {
+	return apply_filters('wpml_permalink',  $url );
+}
+
+add_filter('day_link', 'ajax_ac_permalinks');
+
