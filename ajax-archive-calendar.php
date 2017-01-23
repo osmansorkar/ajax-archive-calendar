@@ -70,10 +70,27 @@ class ajax_ac_widget extends WP_Widget {
 			<div class="select_ca">
 				<select name="month" id="my_month" >
 					<?php
-					$month = array();
-					for ($i = 1; $i <= 12; $i++) {
-						$monthnum = zeroise($i, 2);
-						$month[$monthnum] = $wp_locale->get_month($i);
+					if ('bn' === substr(get_locale(), 0, 2)) {
+						$month=array(
+							'01'=>'জানুয়ারী',
+							'02'=>'ফেব্রুয়ারী',
+							'03'=>'মার্চ',
+							'04'=>'এপ্রিল',
+							'05'=>'মে',
+							'06'=>'জুন',
+							'07'=>'জুলাই',
+							'08'=>'আগষ্ট',
+							'09'=>'সেপ্টেম্বর',
+							'10'=>'অক্টবর',
+							'11'=>'নভেম্বর',
+							'12'=>'ডিসেম্বর'
+						);
+					} else{
+						$month = array();
+						for ($i = 1; $i <= 12; $i++) {
+							$monthnum = zeroise($i, 2);
+							$month[$monthnum] = $wp_locale->get_month($i);
+						}
 					}
 
 					global $m;
