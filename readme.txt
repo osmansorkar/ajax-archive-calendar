@@ -4,7 +4,7 @@ donate link: https://www.paypal.me/osman200995
 Tags: Ajax, Ajax Archive,Ajax Calendar,jquery Calendar, Calendar, style,costomazie Calendar,Widget,Calendar Widget
 Requires at least: 3.0
 Tested up to: 4.7.1
-Stable tag: 2.6
+Stable tag: 2.6.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
