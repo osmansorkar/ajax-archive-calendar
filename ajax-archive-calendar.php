@@ -128,18 +128,19 @@ class ajax_ac_widget extends WP_Widget {
 					for ($nowyearrr = $lassyear; $nowyearrr <= $taryear; $nowyearrr++) {
 						$yeararr[$nowyearrr] = $nowyearrr;
 					}
+				
 					?> 
 
 				<select name="Year" id="my_year" >
 				<?php
-				foreach ($yeararr as $k => $year) {
+				foreach ($yeararr as $k => $years) {
 					if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
-						$year = str_replace($find, $replace, $year);
+						$years = str_replace($find, $replace, $years);
 					}
 					if ($k == $nowyear) {
-						echo '<option value="' . $k . '" selected="selected" >' . $year . '</option>';
+						echo '<option value="' . $k . '" selected="selected" >' . $years . '</option>';
 					} else {
-						echo '<option value="' . $k . '">' . $year . '</option>';
+						echo '<option value="' . $k . '">' . $years . '</option>';
 					}
 				}
 				?>
