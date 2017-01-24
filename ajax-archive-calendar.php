@@ -52,7 +52,6 @@ class ajax_ac_widget extends WP_Widget {
 	/********************** It will be sow home page**************** */
 	function widget($args, $instance) {
 		global $wp_locale,$m, $monthnum, $year;
-
 		extract($args);
 		$title = apply_filters('widget_title', $instance['title']);
 		$bengali=$instance['bangla'];
@@ -89,12 +88,12 @@ class ajax_ac_widget extends WP_Widget {
 					} else{
 						$month = array();
 						for ($i = 1; $i <= 12; $i++) {
-							$monthnum = zeroise($i, 2);
-							$month[$monthnum] = $wp_locale->get_month($i);
+							$monthnums = zeroise($i, 2);
+							$month[$monthnums] = $wp_locale->get_month($i);
 						}
 					}
 
-					global $m;
+
 					if (empty($m) || $m == '') {
 						$nowm = $monthnum;
 						$nowyear = $year;
@@ -109,7 +108,7 @@ class ajax_ac_widget extends WP_Widget {
 
 
 					foreach ($month as $k => $mu) {
-						if ($k == $nowm || $k==$monthnum) {
+						if ($k == $nowm) {
 							echo '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
 						} else {
 							echo '<option value="' . $k . '">' . $mu . '</option>';
@@ -483,47 +482,43 @@ function ajax_ac_head() {
 		}
 
 		#ajax_ac_widget th {
-			background: none repeat scroll 0 0 #008000;
-			color: #FFFFFF;
-			font-weight: normal;
-			padding: 5px 1px;
-			text-align: center;
-			font-size: 16px;
+		background: none repeat scroll 0 0 #2cb2bc;
+		color: #FFFFFF;
+		font-weight: normal;
+		padding: 5px 1px;
+		text-align: center;
+		 font-size: 16px;
 		}
 		#ajax_ac_widget {
 			padding: 5px;
 		}
-
+		
 		#ajax_ac_widget td {
 			border: 1px solid #CCCCCC;
 			text-align: center;
 		}
-
+		
 		#my-calendar a {
 			background: none repeat scroll 0 0 #008000;
 			color: #FFFFFF;
 			display: block;
 			padding: 6px 0;
 			width: 100% !important;
-			border-radius:20px;
 		}
 		#my-calendar{
 			width:100%;
 		}
-
-
+		
+		
 		#my_calender span {
 			display: block;
 			padding: 6px 0;
 			width: 100% !important;
-			background-color:#999;
-			border-radius:20px;
 		}
-
+		
 		#today a,#today span {
-			background: none repeat scroll 0 0 #FF0000 !important;
+			   background: none repeat scroll 0 0 #2cb2bc !important;
 			color: #FFFFFF;
-			border-radius:20px;
 		}
 		#ajax_ac_widget #my_year {
 			float: right;
