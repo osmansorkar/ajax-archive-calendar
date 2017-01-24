@@ -4,7 +4,7 @@
   Plugin URI: http://projapotibd.com
   Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
   Author: osmansorkar
-  Version: 2.5
+  Version: 2.6
   Author URI: http://www.projapotibd.com/
  */
 
@@ -51,7 +51,7 @@ class ajax_ac_widget extends WP_Widget {
 
 	/********************** It will be sow home page**************** */
 	function widget($args, $instance) {
-		global $wp_locale;
+		global $wp_locale,$m, $monthnum, $year;
 
 		extract($args);
 		$title = apply_filters('widget_title', $instance['title']);
@@ -96,8 +96,11 @@ class ajax_ac_widget extends WP_Widget {
 
 					global $m;
 					if (empty($m) || $m == '') {
-						$nowm = date('m');
-						$nowyear = date('Y');
+						$nowm = $monthnum;
+						$nowyear = $year;
+						if($nowyear==0 || $nowyear==null){
+							$nowyear=date(Y);
+						}
 					} else {
 						$mmm = str_split($m, 2);
 						$nowm = zeroise(intval(substr($m, 4, 2)), 2);
@@ -106,7 +109,7 @@ class ajax_ac_widget extends WP_Widget {
 
 
 					foreach ($month as $k => $mu) {
-						if ($k == $nowm) {
+						if ($k == $nowm || $k==$monthnum) {
 							echo '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
 						} else {
 							echo '<option value="' . $k . '">' . $mu . '</option>';
@@ -150,7 +153,7 @@ class ajax_ac_widget extends WP_Widget {
 			echo $url . 'loading.gif'; ?>" /></div>
             
 			<div id="my_calender">
-            	<?php if(!isset($_GET['m'])){ ajax_ac_calendar($ma, $bengali); } else { ajax_ac_calendar($_GET['m'], $bengali); } ?>
+            	<?php ajax_ac_calendar('', $bengali); ?>
 			</div><!--my_calender -->
             <div class="clear" style="clear:both; margin-bottom: 5px;"></div>
 			</div>
@@ -237,9 +240,11 @@ function ajax_ac_callback() {
 	die(); // this is required to return a proper result
 }
 
-function ajax_ac_calendar($ma,$bn, $echo = true) {
+function ajax_ac_calendar($ma=null,$bn, $echo = true) {
 	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
-	$m = & $ma;
+	if($ma!=null){
+		$m=$ma;
+	}
 	$cache = array();
 	$key = md5(get_locale() . $m . $monthnum . $year);
 
@@ -253,7 +258,6 @@ function ajax_ac_calendar($ma,$bn, $echo = true) {
 			}
 		}
 	}
-
 	if (!is_array($cache))
 		$cache = array();
 
