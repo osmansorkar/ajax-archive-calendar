@@ -242,6 +242,7 @@ class ajax_ac_widget extends WP_Widget {
 	function update($new_instance, $old_instance) {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags($new_instance['title']);
+		$instance['bangla'] = strip_tags($new_instance['bangla']);
 		return $instance;
 	}
 
@@ -252,10 +253,18 @@ class ajax_ac_widget extends WP_Widget {
 		$instance = wp_parse_args((array) $instance, $defaults);
 		?>
 		<p>
-			<label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:', 'Recent post'); ?></label>
+			<label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:', 'ajax_archive_calendar'); ?></label>
 			<input id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
 
 		</p>
+        <p>
+        	<label for="<?php echo $this->get_field_id( 'bangla' ); ?>"><?php _e('Select Version', 'ajax_archive_calendar'); ?></label>
+            <select name="<?php echo $this->get_field_name( 'bangla' ); ?>" id="<?php echo $this->get_field_id( 'bangla' ); ?>">
+            	<option value="0" <?php selected( $instance['bangla'], '0') ?> >English/WPML</option>
+                <option value="1" <?php selected( $instance['bangla'], '1') ?> >Bengali</option>
+                
+            </select>
+        </p>
 
 
 		<?php
