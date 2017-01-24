@@ -145,43 +145,20 @@ class ajax_ac_widget extends WP_Widget {
 				</select>
 			</div><!--select ca -->
 			<div class="clear" style="clear:both; margin-bottom: 5px;"></div>
-			<div id="my_calender">
-
-			</div><!--my_calender -->
-			<div class="aj-loging"><img src="<?php $url = plugin_dir_url(__FILE__);
+            <div class="ajax-calendar">
+            <div class="aj-loging" style="left: 49%;position: absolute;top: 50%; display:none"><img src="<?php $url = plugin_dir_url(__FILE__);
 			echo $url . 'loading.gif'; ?>" /></div>
+            
+			<div id="my_calender">
+            	<?php if(!isset($_GET['m'])){ ajax_ac_calendar($ma, $bengali); } else { ajax_ac_calendar($_GET['m'], $bengali); } ?>
+			</div><!--my_calender -->
+            <div class="clear" style="clear:both; margin-bottom: 5px;"></div>
+			</div>
 			<script type="text/javascript" >
-				jQuery('#my_month').change(function (e) {
+				jQuery('#my_month,#my_year').change(function (e) {
 					<?php echo 'var bna='.$bengali.';' ?>
 					jQuery(".aj-loging").css("display", "block");
 					jQuery("#my_calender").css("opacity", "0.30");
-					var mon = jQuery(this).val();
-					var year = jQuery('#my_year').val();
-					var to = year + mon;
-					var data = {
-						action: 'ajax_ac',
-						ma: to,
-						bn:bna,
-
-					};
-
-					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-					jQuery.get(ajaxurl, data, function (response) {
-						jQuery("#my_calender").html(response);
-						jQuery(".aj-loging").css("display", "none");
-						jQuery("#my_calender").css("opacity", "1.00");
-					});
-
-				});
-				jQuery(document).ready(function (e) {
-
-				});
-			</script>
-			<script type="text/javascript" >
-				jQuery('#my_year').change(function (e) {
-					jQuery(".aj-loging").css("display", "block");
-					jQuery("#my_calender").css("opacity", "0.30");
-					<?php echo 'var bna='.$bengali.';' ?>
 					var mon = jQuery('#my_month').val();
 					var year = jQuery('#my_year').val();
 					var to = year + mon;
@@ -200,39 +177,8 @@ class ajax_ac_widget extends WP_Widget {
 					});
 
 				});
-				jQuery(document).ready(function (e) {
-
-				});
+			
 			</script>
-
-			<script type="text/javascript" >
-
-
-				jQuery(document).ready(function (e) {
-		<?php if (!isset($_GET['m'])) {
-			echo 'var a=' . date('Ym');
-		} else echo 'var a=' . $_GET['m']; ?>
-
-					var data = {
-						action: 'ajax_ac',
-						ma: a,
-
-					};
-
-					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-					jQuery.get(ajaxurl, data, function (response) {
-
-
-
-						jQuery("#my_calender").html(response);
-						jQuery(".aj-loging").css("display", "none");
-						jQuery("#my_calender").css("opacity", "1.00");
-
-					});
-				});
-			</script>
-
-
 		</div>
 
 		<?php
@@ -528,6 +474,9 @@ function ajax_ac_head() {
 	</script>
 
 	<style type="text/css">
+		.ajax-calendar{
+			position:relative;
+		}
 
 		#ajax_ac_widget th {
 			background: none repeat scroll 0 0 #008000;
