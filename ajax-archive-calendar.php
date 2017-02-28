@@ -97,6 +97,9 @@ class ajax_ac_widget extends WP_Widget {
 					if (empty($m) || $m == '') {
 						$nowm = $monthnum;
 						$nowyear = $year;
+						if($monthnum==0 || $monthnum==null){
+							$nowm=date(m);
+						}
 						if($nowyear==0 || $nowyear==null){
 							$nowyear=date(Y);
 						}
