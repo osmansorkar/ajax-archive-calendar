@@ -4,7 +4,7 @@
   Plugin URI: http://projapotibd.com
   Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
   Author: osmansorkar
-  Version: 2.6.1
+  Version: 2.6.2
   Author URI: http://www.projapotibd.com/
  */
 
