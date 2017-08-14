@@ -331,147 +331,170 @@ function ajax_ac_calendar($ma=null,$bn, $echo = true) {
 	<tbody>
 	<tr>';
 
-	// Get days with posts
-	$dayswithposts = get_posts(array(
-		'suppress_filters' => false,
-		'post_type' => 'post',
-		'post_status' => 'publish',
-		'monthnum' => $thismonth,
-		'year' => $thisyear,
-	));
+    // Get days with posts
+    $dayswithposts = get_posts(array(
+        'suppress_filters' => false,
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'monthnum' => $thismonth,
+        'year' => $thisyear,
+        'numberposts' => -1,
+    ));
+    if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false)
+        $ak_title_separator = "\n";
+    else
+        $ak_title_separator = ', ';
+    $daywithpost = array();
+    $ak_titles_for_day = array();
+    if ($dayswithposts) {
+        foreach ((array) $dayswithposts as $ak_post) {
+            $daywith = date('d', strtotime($ak_post->post_date));
+            if (!in_array($daywith, $daywithpost)) {
+                $daywithpost[] = $daywith;
+            }
+            $post_title = esc_attr(get_the_title($ak_post));
+            if (empty($ak_titles_for_day[$daywith])) // first one
+                $ak_titles_for_day[$daywith] = $post_title;
+            else
+                $ak_titles_for_day[$daywith] .= $ak_title_separator . $post_title;
+        }
+    }
 
-	if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false)
-		$ak_title_separator = "\n";
-	else
-		$ak_title_separator = ', ';
-
-	$daywithpost = array();
-	$ak_titles_for_day = array();
-	if ($dayswithposts) {
-		foreach ((array) $dayswithposts as $ak_post) {
-			$daywith = date('d', strtotime($ak_post->post_date));
-			if (!in_array($daywith, $daywithpost)) {
-				$daywithpost[] = $daywith;
-			}
-
-			$post_title = esc_attr(get_the_title($ak_post));
-			if (empty($ak_titles_for_day[$daywith])) // first one
-				$ak_titles_for_day[$daywith] = $post_title;
-			else
-				$ak_titles_for_day[$daywith] .= $ak_title_separator . $post_title;
-		}
-	}
-
-	// See how much we should pad in the beginning
-	$pad = calendar_week_mod(date('w', $unixmonth) - $week_begins);
-	if (0 != $pad)
-		$calendar_output .= "\n\t\t" . '<td colspan="' . esc_attr($pad) . '" class="pad">&nbsp;</td>';
-
-	$daysinmonth = intval(date('t', $unixmonth));
-	for ($day = 1; $day <= $daysinmonth; ++$day) {
-		if ('bn' === substr(get_locale(), 0, 2) || $bn==1) {
-			$dayrrr = array(
-				'1' => '১',
-				'2' => '২',
-				'3' => '৩',
-				'4' => '৪',
-				'5' => '৫',
-				'6' => '৬',
-				'7' => '৭',
-				'8' => '৮',
-				'9' => '৯',
-				'10' => '১০',
-				'11' => '১১',
-				'12' => '১২',
-				'13' => '১৩',
-				'14' => '১৪',
-				'15' => '১৫',
-				'16' => '১৬',
-				'17' => '১৭',
-				'18' => '১৮',
-				'19' => '১৯',
-				'20' => '২০',
-				'21' => '২১',
-				'22' => '২২',
-				'23' => '২৩',
-				'24' => '২৪',
-				'25' => '২৫',
-				'26' => '২৬',
-				'27' => '২৭',
-				'28' => '২৮',
-				'29' => '২৯',
-				'30' => '৩০',
-				'31' => '৩১',
-			);
-		} else {
-			$dayrrr = array(
-				'1' => '1',
-				'2' => '2',
-				'3' => '3',
-				'4' => '4',
-				'5' => '5',
-				'6' => '6',
-				'7' => '7',
-				'8' => '8',
-				'9' => '9',
-				'10' => '10',
-				'11' => '11',
-				'12' => '12',
-				'13' => '13',
-				'14' => '14',
-				'15' => '15',
-				'16' => '16',
-				'17' => '17',
-				'18' => '18',
-				'19' => '19',
-				'20' => '20',
-				'21' => '21',
-				'22' => '22',
-				'23' => '23',
-				'24' => '24',
-				'25' => '25',
-				'26' => '26',
-				'27' => '27',
-				'28' => '28',
-				'29' => '29',
-				'30' => '30',
-				'31' => '31',
-			);
-		}
-		if (isset($newrow) && $newrow)
-			$calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
-		$newrow = false;
-
-
-
-		if ($day == gmdate('j', current_time('timestamp')) && $thismonth == gmdate('m', current_time('timestamp')) && $thisyear == gmdate('Y', current_time('timestamp')))
-			$calendar_output .= '<td id="today"  >';
-		else
-			$calendar_output .= '<td class="notday">';
-
-		if (in_array($day, $daywithpost)) // any posts today?
-			$calendar_output .= '<a class="has-post" href="' . get_day_link($thisyear, $thismonth, $day) . '" title="' . esc_attr($ak_titles_for_day[$day]) . "\">$dayrrr[$day]</a>";
-		else
-			$calendar_output .= '<span class="notpost">' . $dayrrr[$day] . '</span>';
-		$calendar_output .= '</td>';
-
-		if (6 == calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins))
-			$newrow = true;
-	}
-
-	$pad = 7 - calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins);
-	if ($pad != 0 && $pad != 7)
-		$calendar_output .= "\n\t\t" . '<td class="pad" colspan="' . esc_attr($pad) . '">&nbsp;</td>';
-
-	$calendar_output .= "\n\t</tr>\n\t</tbody>\n\t</table>";
-
-	$cache[$key] = $calendar_output;
-	wp_cache_set('get_calendar', $cache, 'calendar');
-
-	if ($echo)
-		echo apply_filters('get_calendar', $calendar_output);
-	else
-		return apply_filters('get_calendar', $calendar_output);
+    //print_r($daywithpost);
+    //print_r($ak_titles_for_day);
+    // See how much we should pad in the beginning
+    $pad = calendar_week_mod(date('w', $unixmonth) - $week_begins);
+    if (0 != $pad)
+        $calendar_output .= "\n\t\t" . '<td colspan="' . esc_attr($pad) . '" class="pad">&nbsp;</td>';
+    $daysinmonth = intval(date('t', $unixmonth));
+    for ($day = 1; $day <= $daysinmonth; ++$day) {
+        if ('bn' === substr(get_locale(), 0, 2) || $bn==1) {
+            $dayrrr = array(
+                '1' => '১',
+                '2' => '২',
+                '3' => '৩',
+                '4' => '৪',
+                '5' => '৫',
+                '6' => '৬',
+                '7' => '৭',
+                '8' => '৮',
+                '9' => '৯',
+                '10' => '১০',
+                '11' => '১১',
+                '12' => '১২',
+                '13' => '১৩',
+                '14' => '১৪',
+                '15' => '১৫',
+                '16' => '১৬',
+                '17' => '১৭',
+                '18' => '১৮',
+                '19' => '১৯',
+                '20' => '২০',
+                '21' => '২১',
+                '22' => '২২',
+                '23' => '২৩',
+                '24' => '২৪',
+                '25' => '২৫',
+                '26' => '২৬',
+                '27' => '২৭',
+                '28' => '২৮',
+                '29' => '২৯',
+                '30' => '৩০',
+                '31' => '৩১',
+            );
+        } else {
+            $dayrrr = array(
+                '1' => '1',
+                '2' => '2',
+                '3' => '3',
+                '4' => '4',
+                '5' => '5',
+                '6' => '6',
+                '7' => '7',
+                '8' => '8',
+                '9' => '9',
+                '10' => '10',
+                '11' => '11',
+                '12' => '12',
+                '13' => '13',
+                '14' => '14',
+                '15' => '15',
+                '16' => '16',
+                '17' => '17',
+                '18' => '18',
+                '19' => '19',
+                '20' => '20',
+                '21' => '21',
+                '22' => '22',
+                '23' => '23',
+                '24' => '24',
+                '25' => '25',
+                '26' => '26',
+                '27' => '27',
+                '28' => '28',
+                '29' => '29',
+                '30' => '30',
+                '31' => '31',
+            );
+        }
+        $addzeor=array(
+            '1' => '01',
+            '2' => '02',
+            '3' => '03',
+            '4' => '04',
+            '5' => '05',
+            '6' => '06',
+            '7' => '07',
+            '8' => '08',
+            '9' => '09',
+            '10' => '10',
+            '11' => '11',
+            '12' => '12',
+            '13' => '13',
+            '14' => '14',
+            '15' => '15',
+            '16' => '16',
+            '17' => '17',
+            '18' => '18',
+            '19' => '19',
+            '20' => '20',
+            '21' => '21',
+            '22' => '22',
+            '23' => '23',
+            '24' => '24',
+            '25' => '25',
+            '26' => '26',
+            '27' => '27',
+            '28' => '28',
+            '29' => '29',
+            '30' => '30',
+            '31' => '31',
+        );
+        if (isset($newrow) && $newrow)
+            $calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
+        $newrow = false;
+        if ($day == gmdate('j', current_time('timestamp')) && $thismonth == gmdate('m', current_time('timestamp')) && $thisyear == gmdate('Y', current_time('timestamp')))
+            $calendar_output .= '<td id="today"  >';
+        else
+            $calendar_output .= '<td class="notday">';
+        if (in_array($day, $daywithpost)) // any posts today?
+            $calendar_output .= '<a class="has-post" href="' . get_day_link($thisyear, $thismonth, $day) . '" title="' . esc_attr($ak_titles_for_day[$addzeor[$day]]) . "\">$dayrrr[$day]</a>";
+        else
+            $calendar_output .= '<span class="notpost">' . $dayrrr[$day] . '</span>';
+        $calendar_output .= '</td>';
+        if (6 == calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins))
+            $newrow = true;
+    }
+    $pad = 7 - calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins);
+    if ($pad != 0 && $pad != 7)
+        $calendar_output .= "\n\t\t" . '<td class="pad" colspan="' . esc_attr($pad) . '">&nbsp;</td>';
+    $calendar_output .= "\n\t</tr>\n\t</tbody>\n\t</table>";
+    $cache[$key] = $calendar_output;
+    wp_cache_set('get_calendar', $cache, 'calendar');
+    if ($echo)
+        echo apply_filters('get_calendar', $calendar_output);
+    else
+        return apply_filters('get_calendar', $calendar_output);
 }
 
 function ajax_ac_head() {
