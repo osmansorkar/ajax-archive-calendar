@@ -81,7 +81,7 @@ class ajax_ac_widget extends WP_Widget {
 							'07'=>'জুলাই',
 							'08'=>'আগষ্ট',
 							'09'=>'সেপ্টেম্বর',
-							'10'=>'অক্টবর',
+							'10'=>'অক্টোবর',
 							'11'=>'নভেম্বর',
 							'12'=>'ডিসেম্বর'
 						);
@@ -562,6 +562,12 @@ function ajax_ac_head() {
 	</style>
 	<?php
 }
+
+function ajax_ac_head_shortcode() {
+	the_widget('ajax_ac_widget');
+}
+
+add_shortcode('ajax_ac_widget', 'ajax_ac_head_shortcode');
 
 add_filter('wp_head', 'ajax_ac_head');
 
