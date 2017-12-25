@@ -3,8 +3,8 @@ Contributors: osmansorkar
 donate link: https://www.paypal.me/osman200995
 Tags: Ajax, Ajax Archive,Ajax Calendar,jquery Calendar, Calendar, style,costomazie Calendar,Widget,Calendar Widget
 Requires at least: 3.0
-Tested up to: 4.7.1
-Stable tag: 2.6.1
+Tested up to: 4.9.1
+Stable tag: 2.6.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,6 +13,8 @@ Ajax Archive Calendar .
 == Description ==
 
 Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin . It has both Bengali and English version. 
+
+Now it is support WPML.
 
 If this any modification require and if you face any problem please reoport on gihub 
 
@@ -38,6 +40,8 @@ Ans: Yeas But you need manually edite.
 
 
 == Changelog ==
+= 2.6.3 =
+* Bug fixed
 = 2.6 =
 * Speed Up
 * First Load Direct
