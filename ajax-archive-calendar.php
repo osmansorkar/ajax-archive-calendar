@@ -98,10 +98,10 @@ class ajax_ac_widget extends WP_Widget {
 						$nowm = $monthnum;
 						$nowyear = $year;
 						if($monthnum==0 || $monthnum==null){
-							$nowm=date(m);
+							$nowm=date('m');
 						}
 						if($nowyear==0 || $nowyear==null){
-							$nowyear=date(Y);
+							$nowyear=date('Y');
 						}
 					} else {
 						$mmm = str_split($m, 2);
