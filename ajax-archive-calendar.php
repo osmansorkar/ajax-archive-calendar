@@ -4,7 +4,7 @@
   Plugin URI: http://fb.me/osmansorkar
   Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
   Author: osmansorkar
-  Version: 2.6.6
+  Version: 2.6.7
   Author URI: http://fb.me/osmansorkar
  */
 
@@ -51,8 +51,11 @@ class ajax_ac_widget extends WP_Widget {
 
 	/********************** It will be sow home page**************** */
 	function widget($args, $instance) {
-		global $wp_locale,$m, $monthnum, $year;
 		extract($args);
+
+		$defaults = array('title' => 'Archive Calendar','start_year' => date("Y"));
+		$instance = wp_parse_args((array) $instance, $defaults);
+
 		$title = apply_filters('widget_title', $instance['title']);
 		$bengali=$instance['bangla'];
 
@@ -64,133 +67,16 @@ class ajax_ac_widget extends WP_Widget {
 		/* after title and before title defince by thime */
 			echo $before_title . $title . $after_title;
 		/* end title */
-		/* now start your degine */
+
+        /*
+         * Calender Output
+         * */
+		echo  $this->calender_html($bengali,$instance["start_year"]);
 		?>
-		<div id="ajax_ac_widget">
-			<div class="select_ca">
-				<select name="month" id="my_month" >
-					<?php
-					if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
-						$month=array(
-							'01'=>'জানুয়ারী',
-							'02'=>'ফেব্রুয়ারী',
-							'03'=>'মার্চ',
-							'04'=>'এপ্রিল',
-							'05'=>'মে',
-							'06'=>'জুন',
-							'07'=>'জুলাই',
-							'08'=>'আগষ্ট',
-							'09'=>'সেপ্টেম্বর',
-							'10'=>'অক্টোবর',
-							'11'=>'নভেম্বর',
-							'12'=>'ডিসেম্বর'
-						);
-					} else{
-						$month = array();
-						for ($i = 1; $i <= 12; $i++) {
-							$monthnums = zeroise($i, 2);
-							$month[$monthnums] = $wp_locale->get_month($i);
-						}
-					}
-
-
-					if (empty($m) || $m == '') {
-						$nowm = $monthnum;
-						$nowyear = $year;
-						if($monthnum==0 || $monthnum==null){
-							$nowm=date('m');
-						}
-						if($nowyear==0 || $nowyear==null){
-							$nowyear=date('Y');
-						}
-					} else {
-						$mmm = str_split($m, 2);
-						$nowm = zeroise(intval(substr($m, 4, 2)), 2);
-						$nowyear = $mmm['0'] . $mmm['1'];
-					}
-
-
-					foreach ($month as $k => $mu) {
-						if ($k == $nowm) {
-							echo '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
-						} else {
-							echo '<option value="' . $k . '">' . $mu . '</option>';
-						}
-					}
-					?>
-				</select>
-
-					<?php
-					$find = array("1", "2", "3", "4", "5", "6", "7", "8", "9", "0",);
-					$replace = array("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০",);
-
-
-					$taryear = $nowyear + 5;
-					$yeararr = array();
-					$lassyear = $nowyear - 5;
-					for ($nowyearrr = $lassyear; $nowyearrr <= $taryear; $nowyearrr++) {
-						$yeararr[$nowyearrr] = $nowyearrr;
-					}
-				
-					?> 
-
-				<select name="Year" id="my_year" >
-				<?php
-				foreach ($yeararr as $k => $years) {
-					if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
-						$years = str_replace($find, $replace, $years);
-					}
-					if ($k == $nowyear) {
-						echo '<option value="' . $k . '" selected="selected" >' . $years . '</option>';
-					} else {
-						echo '<option value="' . $k . '">' . $years . '</option>';
-					}
-				}
-				?>
-
-				</select>
-			</div><!--select ca -->
-			<div class="clear" style="clear:both; margin-bottom: 5px;"></div>
-            <div class="ajax-calendar">
-            <div class="aj-loging" style="left: 49%;position: absolute;top: 50%; display:none"><img src="<?php $url = plugin_dir_url(__FILE__);
-			echo $url . 'loading.gif'; ?>" /></div>
-            
-			<div id="my_calender">
-            	<?php ajax_ac_calendar('', $bengali); ?>
-			</div><!--my_calender -->
-            <div class="clear" style="clear:both; margin-bottom: 5px;"></div>
-			</div>
-			<script type="text/javascript" >
-				jQuery('#my_month,#my_year').change(function (e) {
-					<?php echo 'var bna='.$bengali.';' ?>
-					jQuery(".aj-loging").css("display", "block");
-					jQuery("#my_calender").css("opacity", "0.30");
-					var mon = jQuery('#my_month').val();
-					var year = jQuery('#my_year').val();
-					var to = year + mon;
-					var data = {
-						action: 'ajax_ac',
-						ma: to,
-						bn:bna,
-
-					};
-
-					// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-					jQuery.get(ajaxurl, data, function (response) {
-						jQuery("#my_calender").html(response);
-						jQuery(".aj-loging").css("display", "none");
-						jQuery("#my_calender").css("opacity", "1.00");
-					});
-
-				});
-			
-			</script>
-		</div>
 
 		<?php
-		/* now end your degine
 
-		  /*arter_widget define by thimed */
+        /*arter_widget define by theme */
 		echo $after_widget;
 	}
 
@@ -200,13 +86,14 @@ class ajax_ac_widget extends WP_Widget {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['bangla'] = strip_tags($new_instance['bangla']);
+		$instance['start_year'] = strip_tags($new_instance['start_year']);
 		return $instance;
 	}
 
 	/*	 * ********************** It is sow only admin menu********************************* */
 
 	function form($instance) {
-		$defaults = array('title' => 'Archive Calendar');
+		$defaults = array('title' => 'Archive Calendar','start_year' => date("Y"));
 		$instance = wp_parse_args((array) $instance, $defaults);
 		?>
 		<p>
@@ -223,11 +110,155 @@ class ajax_ac_widget extends WP_Widget {
             </select>
         </p>
 
+        <p>
+            <label for="<?php echo $this->get_field_id('start_year'); ?>"><?php _e('Start Year:', 'ajax_archive_calendar'); ?></label>
+            <input type="number"  id="<?php echo $this->get_field_id('start_year'); ?>" name="<?php echo $this->get_field_name('start_year'); ?>" value="<?php echo $instance['start_year']; ?>" style="width:100%;" />
+
+        </p>
+
+        <p>
+            <label for="<?php echo $this->get_field_id('shortcode'); ?>"><?php _e('shortcode', 'ajax_archive_calendar'); ?></label>
+            <input   id="<?php echo $this->get_field_id('shortcode'); ?>"  value='[ajax_archive_calendar  bengali="<?php echo $instance['bangla']; ?>" start="<?php echo $instance['start_year']; ?>"]' style="width:100%;" />
+
+        </p>
+
 
 		<?php
 	}
+    // end from function
 
-// end from function
+    function calender_html($bengali,$start_year){
+	    global $wp_locale,$m, $monthnum, $year;
+
+	    $calender_html = '';
+        $calender_html.= '<div id="ajax_ac_widget">';
+            $calender_html.= '<div class="select_ca">';
+                $calender_html.= '<select name="month" id="my_month" >';
+				    if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
+					    $month=array(
+						    '01'=>'জানুয়ারী',
+						    '02'=>'ফেব্রুয়ারী',
+						    '03'=>'মার্চ',
+						    '04'=>'এপ্রিল',
+						    '05'=>'মে',
+						    '06'=>'জুন',
+						    '07'=>'জুলাই',
+						    '08'=>'আগষ্ট',
+						    '09'=>'সেপ্টেম্বর',
+						    '10'=>'অক্টোবর',
+						    '11'=>'নভেম্বর',
+						    '12'=>'ডিসেম্বর'
+					    );
+				    } else{
+					    $month = array();
+					    for ($i = 1; $i <= 12; $i++) {
+						    $monthnums = zeroise($i, 2);
+						    $month[$monthnums] = $wp_locale->get_month($i);
+					    }
+				    }
+
+
+				    if (empty($m) || $m == '') {
+					    $nowm = $monthnum;
+					    $nowyear = $year;
+					    if($monthnum==0 || $monthnum==null){
+						    $nowm=date('m');
+					    }
+					    if($nowyear==0 || $nowyear==null){
+						    $nowyear=date('Y');
+					    }
+				    } else {
+					    $mmm = str_split($m, 2);
+					    $nowm = zeroise(intval(substr($m, 4, 2)), 2);
+					    $nowyear = $mmm['0'] . $mmm['1'];
+				    }
+
+
+				    foreach ($month as $k => $mu) {
+					    if ($k == $nowm) {
+						    $calender_html.= '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
+					    } else {
+						    $calender_html.= '<option value="' . $k . '">' . $mu . '</option>';
+					    }
+				    }
+
+                $calender_html.= '</select>';
+
+			    $find = array("1", "2", "3", "4", "5", "6", "7", "8", "9", "0",);
+			    $replace = array("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০",);
+
+
+			    $taryear = date("Y");
+			    $yeararr = array();
+			    $lassyear = $start_year;
+			    for ($nowyearrr = $lassyear; $nowyearrr <= $taryear; $nowyearrr++) {
+				    $yeararr[$nowyearrr] = $nowyearrr;
+			    }
+
+
+
+                $calender_html.= '<select name="Year" id="my_year" >';
+
+				    foreach ($yeararr as $k => $years) {
+					    if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
+						    $years = str_replace($find, $replace, $years);
+					    }
+					    if ($k == $nowyear) {
+						    $calender_html.= '<option value="' . $k . '" selected="selected" >' . $years . '</option>';
+					    } else {
+						    $calender_html.= '<option value="' . $k . '">' . $years . '</option>';
+					    }
+				    }
+
+                $calender_html.= '</select>';
+            $calender_html.= '</div><!--select ca -->';
+            $calender_html.= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
+            $calender_html.= '<div class="ajax-calendar">';
+	    $calender_html.='<div class="aj-loging" style="left: 49%;position: absolute;top: 50%; display:none">';
+	    $url = plugin_dir_url( __FILE__ );
+	    $calender_html.='<img src="';
+	    $calender_html.=$url . 'loading.gif';
+	    $calender_html.='" /></div>';
+
+                $calender_html.= '<div id="my_calender">';
+				     $calender_html.= ajax_ac_calendar('', $bengali,false);
+                $calender_html.= '</div><!--my_calender -->';
+                $calender_html.= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
+            $calender_html.= '</div>';
+
+        $calender_html.='</div>';
+
+
+	    $calender_html.='<script type="text/javascript" >
+	                 jQuery(document).on("change","#my_month,#my_year", function (e) {
+                         jQuery(".aj-loging").css("display", "block");
+                         jQuery("#my_calender").css("opacity", "0.30");
+                         
+                         var bna='.$bengali.'
+                         var mon = jQuery("#my_month").val();
+                         var year = jQuery("#my_year").val();
+                         var to = year + mon;
+                         var data = {
+                         action: "ajax_ac",
+                         ma: to,
+                         bn:bna,
+
+                         };
+
+                         // since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+                         jQuery.get(ajaxurl, data, function (response) {
+                         jQuery("#my_calender").html(response);
+                         jQuery(".aj-loging").css("display", "none");
+                         jQuery("#my_calender").css("opacity", "1.00");
+                         });
+
+                         });
+
+                         </script>';
+
+        return $calender_html;
+
+    }
 }
 
 // end widget class
@@ -334,6 +365,7 @@ function ajax_ac_calendar($ma=null,$bn, $echo = true) {
     // Get days with posts
     $dayswithposts = get_posts(array(
         'suppress_filters' => false,
+        //'post_type' => 'post',
         'post_type' => 'post',
         'post_status' => 'publish',
         'monthnum' => $thismonth,
@@ -499,6 +531,7 @@ function ajax_ac_calendar($ma=null,$bn, $echo = true) {
 
 function ajax_ac_head() {
 	?>
+
 	<script type="text/javascript">
 	    var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
 	</script>
@@ -572,3 +605,31 @@ function ajax_ac_permalinks( $url ) {
 
 add_filter('day_link', 'ajax_ac_permalinks');
 
+
+/**
+ * Create WP short code for Ajax Archive Calendar
+ *
+ * @param array $atts
+ * @return void
+ */
+
+//[ajax_archive_calendar]
+function ajax_archive_calendar( $atts ){
+
+    if(key_exists("bengali",$atts)){
+        $bengali = $atts["bengali"];
+    } else {
+	    $bengali = 0;
+    }
+
+	if(key_exists("start",$atts)){
+		$start = $atts["start"];
+	} else {
+		$start = 0;
+	}
+
+    $ajax_ac_widget = new ajax_ac_widget();
+	return $ajax_ac_widget->calender_html($bengali,$start);
+}
+
+add_shortcode( 'ajax_archive_calendar', 'ajax_archive_calendar' );
