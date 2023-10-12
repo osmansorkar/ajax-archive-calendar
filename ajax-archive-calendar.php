@@ -4,7 +4,7 @@
   Plugin URI: http://fb.me/osmansorkar
   Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
   Author: osmansorkar
-  Version: 2.6.7
+  Version: 2.6.8
   Author URI: http://fb.me/osmansorkar
  */
 
@@ -617,15 +617,15 @@ add_filter('day_link', 'ajax_ac_permalinks');
 function ajax_archive_calendar( $atts ){
 
     if(key_exists("bengali",$atts)){
-        $bengali = $atts["bengali"];
+        $bengali = 1;
     } else {
 	    $bengali = 0;
     }
 
-	if(key_exists("start",$atts)){
+	if(key_exists("start",$atts) && is_numeric($atts["start"])){
 		$start = $atts["start"];
 	} else {
-		$start = 0;
+		$start = date("Y");
 	}
 
     $ajax_ac_widget = new ajax_ac_widget();
