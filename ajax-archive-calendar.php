@@ -2,634 +2,958 @@
 /*
   Plugin Name: Ajax Archive Calendar
   Plugin URI: http://fb.me/osmansorkar
-  Description:Ajax Archive Calendar is not only Calendar is also Archive. It is making by customize WordPress default calendar. I hope every body enjoy this plugin.
+  Description: Ajax Archive Calendar is not only a Calendar but also an Archive. It is built by customizing the WordPress default calendar. I hope everybody enjoys this plugin.
   Author: osmansorkar
-  Version: 2.6.8
+  Version: 3.0.0
   Author URI: http://fb.me/osmansorkar
  */
 
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
- * Enqueue frontend scripts.
+ * Enqueue frontend scripts (only jQuery now, as custom JS is inline).
  */
 add_action('wp_enqueue_scripts', 'ajax_ac_enqueue_scripts');
 
-/**
- * Make sure we have jquery available.
- */
-function ajax_ac_enqueue_scripts() {
-	wp_enqueue_script('jquery');
+function ajax_ac_enqueue_scripts()
+{
+    // Ensure jQuery is enqueued as it's a dependency for the inline AJAX script
+    wp_enqueue_script('jquery');
 }
 
 /**
  * Add function to widgets_init that'll load our widget.
- * @since 0.1
  */
-add_action('widgets_init', 'ajax_ac_int');
+add_action('widgets_init', 'ajax_ac_register_widget');
+
+function ajax_ac_register_widget()
+{
+    register_widget('Ajax_AC_Widget');
+}
 
 /**
- * Register our widget.
- * 'Example_Widget' is the widget class used below.
- *
- * @since 0.1
+ * Main Widget Class for Ajax Archive Calendar.
  */
-function ajax_ac_int() {
-	register_widget('ajax_ac_widget');
-}
+class Ajax_AC_Widget extends WP_Widget
+{
+    /**
+     * Bengali number find array
+     * @var array
+     */
+    public static $find = array("1", "2", "3", "4", "5", "6", "7", "8", "9", "0");
 
-/* * ******************************************************** */
+    /**
+     * Bengali number replace array
+     * @var array
+     */
+    public static $replace = array("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০");
 
-class ajax_ac_widget extends WP_Widget {
+    /**
+     * Bengali month array
+     * @var array
+     */
+    public static $month = array(
+        '01' => 'জানুয়ারী',
+        '02' => 'ফেব্রুয়ারী',
+        '03' => 'মার্চ',
+        '04' => 'এপ্রিল',
+        '05' => 'মে',
+        '06' => 'জুন',
+        '07' => 'জুলাই',
+        '08' => 'আগষ্ট',
+        '09' => 'সেপ্টেম্বর',
+        '10' => 'অক্টোবর',
+        '11' => 'নভেম্বর',
+        '12' => 'ডিসেম্বর'
+    );
 
-	function __construct() {
+    function __construct()
+    {
+        parent::__construct(
+            'ajax_ac_widget', // Base ID
+            esc_html__('Ajax Archive Calendar', 'ajax-archive-calendar'), // Name
+            array('description' => esc_html__('Displays an AJAX-powered archive calendar.', 'ajax-archive-calendar')) // Args
+        );
+    }
 
-		parent::__construct(
-			'ajax_ac_widget', // Base ID
-			'Ajax Archive calendar', // Name
-			array('description' => 'It is Ajax Archive Calendar', 'text_domain') // Args
-		);
-	}
+    /**
+     * Front-end display of widget.
+     *
+     * @see WP_Widget::widget()
+     *
+     * @param array $args     Widget arguments.
+     * @param array $instance Saved values from database.
+     */
+    public function widget($args, $instance)
+    {
+        // Extract widget arguments (before_widget, after_widget, before_title, after_title)
+        echo $args['before_widget'];
 
-	/********************** It will be sow home page**************** */
-	function widget($args, $instance) {
-		extract($args);
+        $title = apply_filters('widget_title', $instance['title'] ?? 'Archive Calendar', $instance, $this->id_base);
+        $bengali_enabled = (bool) ($instance['bangla'] ?? false);
+        $start_year = absint($instance['start_year'] ?? date("Y"));
+        $post_type = sanitize_key($instance['post_type'] ?? 'post'); // Get selected single post type, default to 'post'
 
-		$defaults = array('title' => 'Archive Calendar','start_year' => date("Y"));
-		$instance = wp_parse_args((array) $instance, $defaults);
+        if ($title) {
+            echo $args['before_title'] . $title . $args['after_title'];
+        }
 
-		$title = apply_filters('widget_title', $instance['title']);
-		$bengali=$instance['bangla'];
+        // Output the calendar HTML and the inline JavaScript
+        echo $this->generate_calendar_html($bengali_enabled, $start_year, $post_type);
 
-		/* Before widget (defined by themes). */
-		echo $before_widget;
+        echo $args['after_widget'];
+    }
 
-		/* $title define by from */
-		if ($title)
-		/* after title and before title defince by thime */
-			echo $before_title . $title . $after_title;
-		/* end title */
+    /**
+     * Sanitize widget form values as they are saved.
+     *
+     * @see WP_Widget::update()
+     *
+     * @param array $new_instance Values just sent to be saved.
+     * @param array $old_instance Previously saved values from database.
+     *
+     * @return array Updated safe values to be saved.
+     */
+    public function update($new_instance, $old_instance)
+    {
+        $instance = $old_instance;
+        $instance['title'] = sanitize_text_field($new_instance['title']);
+        $instance['bangla'] = (isset($new_instance['bangla'])) ? (bool) $new_instance['bangla'] : false;
+        $instance['start_year'] = absint($new_instance['start_year']);
+        
+        // Sanitize single post type
+        $instance['post_type'] = sanitize_key($new_instance['post_type'] ?? 'post');
 
-        /*
-         * Calender Output
-         * */
-		echo  $this->calender_html($bengali,$instance["start_year"]);
-		?>
+        return $instance;
+    }
 
-		<?php
+    /**
+     * Back-end widget form.
+     *
+     * @see WP_Widget::form()
+     *
+     * @param array $instance Current settings.
+     */
+    public function form($instance)
+    {
+        $defaults = array(
+            'title'      => esc_html__('Archive Calendar', 'ajax-archive-calendar'),
+            'start_year' => date("Y"),
+            'bangla'     => '0',
+            'post_type'  => 'post' // Default single post type
+        );
+        $instance = wp_parse_args((array) $instance, $defaults);
 
-        /*arter_widget define by theme */
-		echo $after_widget;
-	}
+        $title = esc_attr($instance['title']);
+        $bengali = esc_attr($instance['bangla']);
+        $start_year = esc_attr($instance['start_year']);
+        $selected_post_type = sanitize_key($instance['post_type']);
 
-	/*	 * ****************** It Update widget ****************************** */
-
-	function update($new_instance, $old_instance) {
-		$instance = $old_instance;
-		$instance['title'] = strip_tags($new_instance['title']);
-		$instance['bangla'] = strip_tags($new_instance['bangla']);
-		$instance['start_year'] = strip_tags($new_instance['start_year']);
-		return $instance;
-	}
-
-	/*	 * ********************** It is sow only admin menu********************************* */
-
-	function form($instance) {
-		$defaults = array('title' => 'Archive Calendar','start_year' => date("Y"));
-		$instance = wp_parse_args((array) $instance, $defaults);
-		?>
-		<p>
-			<label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:', 'ajax_archive_calendar'); ?></label>
-			<input id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
-
-		</p>
+        // Get all public post types
+        $all_post_types = get_post_types(array('public' => true), 'objects');
+    ?>
         <p>
-        	<label for="<?php echo $this->get_field_id( 'bangla' ); ?>"><?php _e('Select Version', 'ajax_archive_calendar'); ?></label>
-            <select name="<?php echo $this->get_field_name( 'bangla' ); ?>" id="<?php echo $this->get_field_id( 'bangla' ); ?>">
-            	<option value="0" <?php selected( $instance['bangla'], '0') ?> >English/WPML</option>
-                <option value="1" <?php selected( $instance['bangla'], '1') ?> >Bengali</option>
-                
+            <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php esc_html_e('Title:', 'ajax-archive-calendar'); ?></label>
+            <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo $title; ?>" />
+        </p>
+        <p>
+            <label for="<?php echo esc_attr($this->get_field_id('bangla')); ?>"><?php esc_html_e('Select Version:', 'ajax-archive-calendar'); ?></label>
+            <select class="widefat" name="<?php echo esc_attr($this->get_field_name('bangla')); ?>" id="<?php echo esc_attr($this->get_field_id('bangla')); ?>">
+                <option value="0" <?php selected($bengali, '0'); ?>><?php esc_html_e('English/WPML', 'ajax-archive-calendar'); ?></option>
+                <option value="1" <?php selected($bengali, '1'); ?>><?php esc_html_e('Bengali', 'ajax-archive-calendar'); ?></option>
             </select>
         </p>
-
         <p>
-            <label for="<?php echo $this->get_field_id('start_year'); ?>"><?php _e('Start Year:', 'ajax_archive_calendar'); ?></label>
-            <input type="number"  id="<?php echo $this->get_field_id('start_year'); ?>" name="<?php echo $this->get_field_name('start_year'); ?>" value="<?php echo $instance['start_year']; ?>" style="width:100%;" />
-
+            <label for="<?php echo esc_attr($this->get_field_id('start_year')); ?>"><?php esc_html_e('Start Year (e.g., 2010):', 'ajax-archive-calendar'); ?></label>
+            <input class="widefat" type="number" id="<?php echo esc_attr($this->get_field_id('start_year')); ?>" name="<?php echo esc_attr($this->get_field_name('start_year')); ?>" value="<?php echo $start_year; ?>" min="1900" max="<?php echo date('Y'); ?>" />
         </p>
-
         <p>
-            <label for="<?php echo $this->get_field_id('shortcode'); ?>"><?php _e('shortcode', 'ajax_archive_calendar'); ?></label>
-            <input   id="<?php echo $this->get_field_id('shortcode'); ?>"  value='[ajax_archive_calendar  bengali="<?php echo $instance['bangla']; ?>" start="<?php echo $instance['start_year']; ?>"]' style="width:100%;" />
-
+            <label for="<?php echo esc_attr($this->get_field_id('post_type')); ?>"><?php esc_html_e('Select Post Type:', 'ajax-archive-calendar'); ?></label>
+            <select class="widefat" id="<?php echo esc_attr($this->get_field_id('post_type')); ?>" name="<?php echo esc_attr($this->get_field_name('post_type')); ?>">
+                <?php foreach ($all_post_types as $post_type_obj) : ?>
+                    <option value="<?php echo esc_attr($post_type_obj->name); ?>" <?php selected($post_type_obj->name, $selected_post_type); ?>>
+                        <?php echo esc_html($post_type_obj->labels->singular_name); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </p>
+        <p>
+            <label for="<?php echo esc_attr($this->get_field_id('shortcode')); ?>"><?php esc_html_e('Shortcode:', 'ajax-archive-calendar'); ?></label>
+            <input type="text" class="widefat" id="<?php echo esc_attr($this->get_field_id('shortcode')); ?>" value='[ajax_archive_calendar bengali="<?php echo $bengali; ?>" start="<?php echo $start_year; ?>" post_type="<?php echo esc_attr($selected_post_type); ?>"]' readonly />
+        </p>
+    <?php
+    }
 
+    /**
+     * Generates the HTML structure for the calendar widget, including dropdowns and the calendar table.
+     * This function is called by the widget and the shortcode.
+     *
+     * @param bool  $bengali_enabled Whether to display month/year/day names in Bengali.
+     * @param int   $start_year      The starting year for the year dropdown.
+     * @param string $post_type      The single post type slug to include in the calendar.
+     * @return string The full HTML output for the calendar widget.
+     */
+    public function generate_calendar_html($bengali_enabled, $start_year, $post_type)
+    {
+        global $wp_locale, $m, $monthnum, $year;
 
-		<?php
-	}
-    // end from function
+        $calender_html = '<div id="ajax_ac_widget" class="ajax-ac-widget">';
+        $calender_html .= '<div class="select_ca">';
 
-    function calender_html($bengali,$start_year){
-	    global $wp_locale,$m, $monthnum, $year;
+        // Determine current month and year for dropdown selection
+        $current_month_num_for_dropdown = zeroise(intval($monthnum), 2);
+        $current_year_for_dropdown = intval($year);
 
-	    $calender_html = '';
-        $calender_html.= '<div id="ajax_ac_widget">';
-            $calender_html.= '<div class="select_ca">';
-                $calender_html.= '<select name="month" id="my_month" >';
-				    if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
-					    $month=array(
-						    '01'=>'জানুয়ারী',
-						    '02'=>'ফেব্রুয়ারী',
-						    '03'=>'মার্চ',
-						    '04'=>'এপ্রিল',
-						    '05'=>'মে',
-						    '06'=>'জুন',
-						    '07'=>'জুলাই',
-						    '08'=>'আগষ্ট',
-						    '09'=>'সেপ্টেম্বর',
-						    '10'=>'অক্টোবর',
-						    '11'=>'নভেম্বর',
-						    '12'=>'ডিসেম্বর'
-					    );
-				    } else{
-					    $month = array();
-					    for ($i = 1; $i <= 12; $i++) {
-						    $monthnums = zeroise($i, 2);
-						    $month[$monthnums] = $wp_locale->get_month($i);
-					    }
-				    }
+        if (empty($m) || $m == '') {
+            if ($monthnum == 0 || $monthnum == null) {
+                $current_month_num_for_dropdown = date('m');
+            }
+            if ($year == 0 || $year == null) {
+                $current_year_for_dropdown = date('Y');
+            }
+        } else {
+            // If $m (YYYYMM) is set, use it to determine current month/year
+            $current_year_for_dropdown = intval(substr($m, 0, 4));
+            $current_month_num_for_dropdown = zeroise(intval(substr($m, 4, 2)), 2);
+        }
 
+        // Month Dropdown
+        $calender_html .= '<select name="month" id="my_month">';
+        $months_to_display = ($bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) ? self::$month : array();
 
-				    if (empty($m) || $m == '') {
-					    $nowm = $monthnum;
-					    $nowyear = $year;
-					    if($monthnum==0 || $monthnum==null){
-						    $nowm=date('m');
-					    }
-					    if($nowyear==0 || $nowyear==null){
-						    $nowyear=date('Y');
-					    }
-				    } else {
-					    $mmm = str_split($m, 2);
-					    $nowm = zeroise(intval(substr($m, 4, 2)), 2);
-					    $nowyear = $mmm['0'] . $mmm['1'];
-				    }
+        if (empty($months_to_display)) {
+            for ($i = 1; $i <= 12; $i++) {
+                $monthnums = zeroise($i, 2);
+                $months_to_display[$monthnums] = $wp_locale->get_month($i);
+            }
+        }
 
+        foreach ($months_to_display as $k => $month_name) {
+            $selected = selected($k, $current_month_num_for_dropdown, false);
+            $calender_html .= '<option value="' . esc_attr($k) . '" ' . $selected . '>' . esc_html($month_name) . '</option>';
+        }
+        $calender_html .= '</select>';
 
-				    foreach ($month as $k => $mu) {
-					    if ($k == $nowm) {
-						    $calender_html.= '<option value="' . $k . '" selected="selected" >' . $mu . '</option>';
-					    } else {
-						    $calender_html.= '<option value="' . $k . '">' . $mu . '</option>';
-					    }
-				    }
+        // Year Dropdown
+        $calender_html .= '<select name="Year" id="my_year">';
+        $current_year_val = date("Y");
+        $years_to_display = array();
+        for ($y = $start_year; $y <= $current_year_val; $y++) {
+            $years_to_display[$y] = ($bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) ? str_replace(self::$find, self::$replace, $y) : $y;
+        }
 
-                $calender_html.= '</select>';
+        foreach ($years_to_display as $k => $year_text) {
+            $selected = selected($k, $current_year_for_dropdown, false);
+            $calender_html .= '<option value="' . esc_attr($k) . '" ' . $selected . '>' . esc_html($year_text) . '</option>';
+        }
+        $calender_html .= '</select>';
+        $calender_html .= '</div><!-- .select_ca -->';
+        $calender_html .= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
 
-			    $find = array("1", "2", "3", "4", "5", "6", "7", "8", "9", "0",);
-			    $replace = array("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০",);
+        $calender_html .= '<div class="ajax-calendar">';
+        $calender_html .= '<div class="aj-loging" style="display:none">';
+        $loading_gif_url = plugins_url('loading.gif', __FILE__);
+        $calender_html .= '<img src="' . esc_url($loading_gif_url) . '" alt="' . esc_attr__('Loading...', 'ajax-archive-calendar') . '" />';
+        $calender_html .= '</div>'; // .aj-loging
 
+        $calender_html .= '<div id="satej_it_calender">';
+        // Initial calendar load - pass post type
+        $calender_html .= ajax_ac_generate_calendar_table($m, $bengali_enabled, $post_type, false);
+        $calender_html .= '</div><!-- #satej_it_calender -->';
+        $calender_html .= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
+        $calender_html .= '</div><!-- .ajax-calendar -->';
+        $calender_html .= '</div><!-- #ajax_ac_widget -->';
 
-			    $taryear = date("Y");
-			    $yeararr = array();
-			    $lassyear = $start_year;
-			    for ($nowyearrr = $lassyear; $nowyearrr <= $taryear; $nowyearrr++) {
-				    $yeararr[$nowyearrr] = $nowyearrr;
-			    }
+        // Inline JavaScript for AJAX functionality
+        // Pass post_type as a string to JavaScript
+        $post_type_js = json_encode($post_type); // Will be a string like "post" or "magazine"
 
+        $calender_html .= '<script type="text/javascript">
+            jQuery(document).ready(function ($) {
 
+                const runAjaxCalendar = function(monthYear, isBengali, postType) {
+                    $(".aj-loging").css("display", "flex"); // Use flex to center loading gif
+                    $("#satej_it_calender").css("opacity", "0.30");
+                    
+                    var data = {
+                        action: "ajax_ac",
+                        ma: monthYear,
+                        bn: isBengali ? 1 : 0, // Pass 1 for true, 0 for false
+                        post_type: postType // Pass the single post type string
+                    };
+                    
+                    // since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+                    $.get("' . admin_url('admin-ajax.php') . '", data, function (response) {
+                        $("#satej_it_calender").html(response); // Update calendar HTML
+                        $(".aj-loging").css("display", "none"); // Hide loading indicator
+                        $("#satej_it_calender").css("opacity", "1.00"); // Restore opacity
 
-                $calender_html.= '<select name="Year" id="my_year" >';
+                        // Update the month and year dropdowns to reflect the newly loaded calendar
+                        var newYear = monthYear.substring(0, 4);
+                        var newMonth = monthYear.substring(4, 6);
 
-				    foreach ($yeararr as $k => $years) {
-					    if ('bn' === substr(get_locale(), 0, 2) || $bengali==1) {
-						    $years = str_replace($find, $replace, $years);
-					    }
-					    if ($k == $nowyear) {
-						    $calender_html.= '<option value="' . $k . '" selected="selected" >' . $years . '</option>';
-					    } else {
-						    $calender_html.= '<option value="' . $k . '">' . $years . '</option>';
-					    }
-				    }
+                        $("#my_month").val(newMonth);
+                        $("#my_year").val(newYear);
+                    });
+                };
+                
+                // Event listener for month/year dropdowns
+                $(document).on("change", "#my_month, #my_year", function (e) {
+                    e.preventDefault();
+                    var mon = $("#my_month").val();
+                    var year = $("#my_year").val();
+                    var to = year + mon;
+                    // Pass the current Bengali setting and post type from PHP
+                    var isBengali = ' . json_encode($bengali_enabled) . ';
+                    var postType = ' . $post_type_js . '; // Use the JSON encoded string
+                    runAjaxCalendar(to, isBengali, postType);
+                });
 
-                $calender_html.= '</select>';
-            $calender_html.= '</div><!--select ca -->';
-            $calender_html.= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
-            $calender_html.= '<div class="ajax-calendar">';
-	    $calender_html.='<div class="aj-loging" style="left: 49%;position: absolute;top: 50%; display:none">';
-	    $url = plugin_dir_url( __FILE__ );
-	    $calender_html.='<img src="';
-	    $calender_html.=$url . 'loading.gif';
-	    $calender_html.='" /></div>';
+                // Event listener for previous/next/current month links (top and bottom)
+                $(document).on("click", ".prev-month-link, .next-month-link", function (e) {
+                    e.preventDefault(); // Prevent default link behavior (page reload)
 
-                $calender_html.= '<div id="my_calender">';
-				     $calender_html.= ajax_ac_calendar('', $bengali,false);
-                $calender_html.= '</div><!--my_calender -->';
-                $calender_html.= '<div class="clear" style="clear:both; margin-bottom: 5px;"></div>';
-            $calender_html.= '</div>';
-
-        $calender_html.='</div>';
-
-
-	    $calender_html.='<script type="text/javascript" >
-	                 jQuery(document).on("change","#my_month,#my_year", function (e) {
-                         jQuery(".aj-loging").css("display", "block");
-                         jQuery("#my_calender").css("opacity", "0.30");
-                         
-                         var bna='.$bengali.'
-                         var mon = jQuery("#my_month").val();
-                         var year = jQuery("#my_year").val();
-                         var to = year + mon;
-                         var data = {
-                         action: "ajax_ac",
-                         ma: to,
-                         bn:bna,
-
-                         };
-
-                         // since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-                         jQuery.get(ajaxurl, data, function (response) {
-                         jQuery("#my_calender").html(response);
-                         jQuery(".aj-loging").css("display", "none");
-                         jQuery("#my_calender").css("opacity", "1.00");
-                         });
-
-                         });
-
-                         </script>';
+                    var linkHref = $(this).attr("href");
+                    // Extract YYYYMM from the href. Example: /2023/01/
+                    var match = linkHref.match(/\/(\d{4})\/(\d{2})\//);
+                    if (match && match.length >= 3) {
+                        var year = match[1];
+                        var month = match[2];
+                        var monthYear = year + month;
+                        // Pass the current Bengali setting and post type from PHP
+                        var isBengali = ' . json_encode($bengali_enabled) . ';
+                        var postType = ' . $post_type_js . '; // Use the JSON encoded string
+                        runAjaxCalendar(monthYear, isBengali, postType);
+                    } else {
+                        console.error("Could not extract month and year from link href:", linkHref);
+                    }
+                });
+            });
+        </script>';
 
         return $calender_html;
-
     }
-}
+} // End class Ajax_AC_Widget
 
-// end widget class
-
-
+/**
+ * AJAX Callback function to generate calendar HTML.
+ * This function is hooked to 'wp_ajax_ajax_ac' and 'wp_ajax_nopriv_ajax_ac'.
+ */
 add_action('wp_ajax_ajax_ac', 'ajax_ac_callback');
 add_action('wp_ajax_nopriv_ajax_ac', 'ajax_ac_callback');
 
-function ajax_ac_callback() {
-	$ma = $_GET['ma'];
-	$bn = $_GET['bn'];
-	ajax_ac_calendar($ma,$bn);
-	die(); // this is required to return a proper result
+function ajax_ac_callback()
+{
+    // Sanitize and validate input
+    $month_arg = sanitize_text_field($_GET['ma'] ?? '');
+    $is_bengali = (bool) ($_GET['bn'] ?? false);
+    
+    // Retrieve single post_type
+    $post_type = sanitize_key($_GET['post_type'] ?? 'post');
+
+    // Generate and echo the calendar HTML
+    echo ajax_ac_generate_calendar_table($month_arg, $is_bengali, $post_type, false); // echo = false, so it returns string
+
+    wp_die(); // Always die at the end of an AJAX callback
 }
 
-function ajax_ac_calendar($ma=null,$bn, $echo = true) {
-	global $wpdb, $m, $monthnum, $year, $wp_locale, $posts;
-	if($ma!=null){
-		$m=$ma;
-	}
-	$cache = array();
-	$key = md5(get_locale() . $m . $monthnum . $year);
+/**
+ * Global variable to hold the current custom post type for permalink filtering.
+ */
+global $ajax_ac_current_post_type;
+$ajax_ac_current_post_type = 'post'; // Default to 'post'
 
-	if ($cache = wp_cache_get('get_calendar', 'calendar')) {
-		if (is_array($cache) && isset($cache[$key])) {
-			if ($echo) {
-				echo apply_filters('get_calendar', $cache[$key]);
-				return;
-			} else {
-				return apply_filters('get_calendar', $cache[$key]);
-			}
-		}
-	}
-	if (!is_array($cache))
-		$cache = array();
+/**
+ * Filters the day link to include the custom post type if it's not 'post'.
+ *
+ * @global string $ajax_ac_current_post_type The current post type for the calendar.
+ *
+ * @param string $link  The original day link.
+ * @param int    $year  The year for the link.
+ * @param int    $month The month for the link.
+ * @param int    $day   The day for the link.
+ * @return string The potentially modified day link with post_type query arg.
+ */
+function ajax_ac_filter_day_link($link, $year, $month, $day)
+{
+    global $ajax_ac_current_post_type;
+    if ($ajax_ac_current_post_type && 'post' !== $ajax_ac_current_post_type) {
+        $link = add_query_arg('post_type', $ajax_ac_current_post_type, $link);
+    }
+    return $link;
+}
 
-	// Quick check. If we have no posts at all, abort!
-	if (!$posts) {
-		$gotsome = $wpdb->get_var("SELECT 1 as test FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish' LIMIT 1");
-		if (!$gotsome) {
-			$cache[$key] = '';
-			wp_cache_set('get_calendar', $cache, 'calendar');
-			return;
-		}
-	}
+/**
+ * Filters the month link to include the custom post type if it's not 'post'.
+ *
+ * @global string $ajax_ac_current_post_type The current post type for the calendar.
+ *
+ * @param string $link  The original month link.
+ * @param int    $year  The year for the link.
+ * @param int    $month The month for the link.
+ * @return string The potentially modified month link with post_type query arg.
+ */
+function ajax_ac_filter_month_link($link, $year, $month)
+{
+    global $ajax_ac_current_post_type;
+    if ($ajax_ac_current_post_type && 'post' !== $ajax_ac_current_post_type) {
+        $link = add_query_arg('post_type', $ajax_ac_current_post_type, $link);
+    }
+    return $link;
+}
 
-	if (isset($_GET['w']))
-		$w = '' . intval($_GET['w']);
+/**
+ * Generates the HTML table for the calendar.
+ * This function is called by the widget/shortcode and the AJAX callback.
+ *
+ * @param string|null $month_arg Optional. The month and year in 'YYYYMM' format (e.g., '202301').
+ * If null, it tries to use global $m, $monthnum, $year, or current date.
+ * @param bool        $is_bengali_enabled Optional. If true, displays weekdays and day numbers in Bengali.
+ * Defaults to false.
+ * @param string      $post_type          The single post type slug to include in the calendar.
+ * @param bool        $echo       Optional. Whether to echo the calendar HTML directly or return it.
+ * Defaults to true.
+ * @return string|void HTML string of the calendar if $echo is false, otherwise void.
+ */
+function ajax_ac_generate_calendar_table($month_arg = null, $is_bengali_enabled = false, $post_type = 'post', $echo = true)
+{
+    global $wpdb, $m, $monthnum, $year, $wp_locale, $posts, $ajax_ac_current_post_type;
 
-	// week_begins = 0 stands for Sunday
-	$week_begins = intval(get_option('start_of_week'));
+    // Set the global variable for the current post type, to be used by permalink filters
+    $ajax_ac_current_post_type = $post_type;
 
-	// Let's figure out when we are
-	if (!empty($monthnum) && !empty($year)) {
-		$thismonth = '' . zeroise(intval($monthnum), 2);
-		$thisyear = '' . intval($year);
-	} elseif (!empty($w)) {
-		// We need to get the month from MySQL
-		$thisyear = '' . intval(substr($m, 0, 4));
-		$d = (($w - 1) * 7) + 6; //it seems MySQL's weeks disagree with PHP's
-		$thismonth = $wpdb->get_var("SELECT DATE_FORMAT((DATE_ADD('{$thisyear}0101', INTERVAL $d DAY) ), '%m')");
-	} elseif (!empty($m)) {
-		$thisyear = '' . intval(substr($m, 0, 4));
-		if (strlen($m) < 6)
-			$thismonth = '01';
-		else
-			$thismonth = '' . zeroise(intval(substr($m, 4, 2)), 2);
-	} else {
-		$thisyear = gmdate('Y', current_time('timestamp'));
-		$thismonth = gmdate('m', current_time('timestamp'));
-	}
+    // Add filters for day and month links ONLY when generating the calendar table
+    add_filter('day_link', 'ajax_ac_filter_day_link', 10, 4);
+    add_filter('month_link', 'ajax_ac_filter_month_link', 10, 3);
 
-	$unixmonth = mktime(0, 0, 0, $thismonth, 1, $thisyear);
-	$last_day = date('t', $unixmonth);
-
-	$calendar_output = '<table id="my-calendar">
-	<thead>
-	<tr>';
-
-	$myweek = array();
-
-	for ($wdcount = 0; $wdcount <= 6; $wdcount++) {
-		$myweek[] = $wp_locale->get_weekday(($wdcount + $week_begins) % 7);
-	}
-
-	$barr = array('Saturday' => 'শনি', 'Sunday' => 'রবি', 'Monday' => 'সোম', 'Tuesday' => 'মঙ্গল', 'Wednesday' => 'বুধ', 'Thursday' => 'বৃহ', 'Friday' => 'শুক্র');
-	foreach ($myweek as $wd) {
-		if ('bn' === substr(get_locale(), 0, 2) || $bn==1) {
-			$day_name = $barr[$wd];
-		} else {
-			$day_name = $wp_locale->get_weekday_abbrev($wd);
-		}
-		$wd = esc_attr($wd);
-		$calendar_output .= "\n\t\t<th class=\"$day_name\" scope=\"col\" title=\"$wd\">$day_name</th>";
-	}
-
-	$calendar_output .= '
-	</tr>
-	</thead>
-
-	<tbody>
-	<tr>';
-
-    // Get days with posts
-    $dayswithposts = get_posts(array(
-        'suppress_filters' => false,
-        //'post_type' => 'post',
-        'post_type' => 'post',
-        'post_status' => 'publish',
-        'monthnum' => $thismonth,
-        'year' => $thisyear,
-        'numberposts' => -1,
-    ));
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false)
-        $ak_title_separator = "\n";
-    else
-        $ak_title_separator = ', ';
-    $daywithpost = array();
-    $ak_titles_for_day = array();
-    if ($dayswithposts) {
-        foreach ((array) $dayswithposts as $ak_post) {
-            $daywith = date('d', strtotime($ak_post->post_date));
-            if (!in_array($daywith, $daywithpost)) {
-                $daywithpost[] = $daywith;
-            }
-            $post_title = esc_attr(get_the_title($ak_post));
-            if (empty($ak_titles_for_day[$daywith])) // first one
-                $ak_titles_for_day[$daywith] = $post_title;
-            else
-                $ak_titles_for_day[$daywith] .= $ak_title_separator . $post_title;
-        }
+    // Override global $m if $month_arg is provided
+    if ($month_arg !== null) {
+        $m = $month_arg;
     }
 
-    //print_r($daywithpost);
-    //print_r($ak_titles_for_day);
-    // See how much we should pad in the beginning
-    $pad = calendar_week_mod(date('w', $unixmonth) - $week_begins);
-    if (0 != $pad)
-        $calendar_output .= "\n\t\t" . '<td colspan="' . esc_attr($pad) . '" class="pad">&nbsp;</td>';
-    $daysinmonth = intval(date('t', $unixmonth));
-    for ($day = 1; $day <= $daysinmonth; ++$day) {
-        if ('bn' === substr(get_locale(), 0, 2) || $bn==1) {
-            $dayrrr = array(
-                '1' => '১',
-                '2' => '২',
-                '3' => '৩',
-                '4' => '৪',
-                '5' => '৫',
-                '6' => '৬',
-                '7' => '৭',
-                '8' => '৮',
-                '9' => '৯',
-                '10' => '১০',
-                '11' => '১১',
-                '12' => '১২',
-                '13' => '১৩',
-                '14' => '১৪',
-                '15' => '১৫',
-                '16' => '১৬',
-                '17' => '১৭',
-                '18' => '১৮',
-                '19' => '১৯',
-                '20' => '২০',
-                '21' => '২১',
-                '22' => '২২',
-                '23' => '২৩',
-                '24' => '২৪',
-                '25' => '২৫',
-                '26' => '২৬',
-                '27' => '২৭',
-                '28' => '২৮',
-                '29' => '২৯',
-                '30' => '৩০',
-                '31' => '৩১',
-            );
+    // --- Caching Mechanism ---
+    // Include post_type in cache key
+    $cache_key = 'ajax_ac_calendar_' . md5(get_locale() . $m . $monthnum . $year . ($is_bengali_enabled ? 'bn' : 'en') . $post_type);
+    $calendar_output = wp_cache_get($cache_key, 'calendar');
+
+    if (false !== $calendar_output) { // Check if cache hit
+        // Remove filters before returning cached output
+        remove_filter('day_link', 'ajax_ac_filter_day_link', 10);
+        remove_filter('month_link', 'ajax_ac_filter_month_link', 10);
+        if ($echo) {
+            echo apply_filters('ajax_ac_calendar_output', $calendar_output);
+            return;
         } else {
-            $dayrrr = array(
-                '1' => '1',
-                '2' => '2',
-                '3' => '3',
-                '4' => '4',
-                '5' => '5',
-                '6' => '6',
-                '7' => '7',
-                '8' => '8',
-                '9' => '9',
-                '10' => '10',
-                '11' => '11',
-                '12' => '12',
-                '13' => '13',
-                '14' => '14',
-                '15' => '15',
-                '16' => '16',
-                '17' => '17',
-                '18' => '18',
-                '19' => '19',
-                '20' => '20',
-                '21' => '21',
-                '22' => '22',
-                '23' => '23',
-                '24' => '24',
-                '25' => '25',
-                '26' => '26',
-                '27' => '27',
-                '28' => '28',
-                '29' => '29',
-                '30' => '30',
-                '31' => '31',
-            );
+            return apply_filters('ajax_ac_calendar_output', $calendar_output);
         }
-        $addzeor=array(
-            '1' => '01',
-            '2' => '02',
-            '3' => '03',
-            '4' => '04',
-            '5' => '05',
-            '6' => '06',
-            '7' => '07',
-            '8' => '08',
-            '9' => '09',
-            '10' => '10',
-            '11' => '11',
-            '12' => '12',
-            '13' => '13',
-            '14' => '14',
-            '15' => '15',
-            '16' => '16',
-            '17' => '17',
-            '18' => '18',
-            '19' => '19',
-            '20' => '20',
-            '21' => '21',
-            '22' => '22',
-            '23' => '23',
-            '24' => '24',
-            '25' => '25',
-            '26' => '26',
-            '27' => '27',
-            '28' => '28',
-            '29' => '29',
-            '30' => '30',
-            '31' => '31',
-        );
-        if (isset($newrow) && $newrow)
-            $calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
-        $newrow = false;
-        if ($day == gmdate('j', current_time('timestamp')) && $thismonth == gmdate('m', current_time('timestamp')) && $thisyear == gmdate('Y', current_time('timestamp')))
-            $calendar_output .= '<td id="today"  >';
-        else
-            $calendar_output .= '<td class="notday">';
-        if (in_array($day, $daywithpost)) // any posts today?
-            $calendar_output .= '<a class="has-post" href="' . get_day_link($thisyear, $thismonth, $day) . '" title="' . esc_attr($ak_titles_for_day[$addzeor[$day]]) . "\">$dayrrr[$day]</a>";
-        else
-            $calendar_output .= '<span class="notpost">' . $dayrrr[$day] . '</span>';
-        $calendar_output .= '</td>';
-        if (6 == calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins))
-            $newrow = true;
     }
-    $pad = 7 - calendar_week_mod(date('w', mktime(0, 0, 0, $thismonth, $day, $thisyear)) - $week_begins);
-    if ($pad != 0 && $pad != 7)
-        $calendar_output .= "\n\t\t" . '<td class="pad" colspan="' . esc_attr($pad) . '">&nbsp;</td>';
-    $calendar_output .= "\n\t</tr>\n\t</tbody>\n\t</table>";
-    $cache[$key] = $calendar_output;
-    wp_cache_set('get_calendar', $cache, 'calendar');
-    if ($echo)
-        echo apply_filters('get_calendar', $calendar_output);
-    else
-        return apply_filters('get_calendar', $calendar_output);
+
+    // --- Early Exit: No Posts Check ---
+    // This check is now more accurate for the selected post type.
+    if (!$posts) {
+        $has_posts = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT 1 FROM $wpdb->posts WHERE post_type = %s AND post_status = 'publish' LIMIT 1",
+                $post_type // Single post type
+            )
+        );
+        if (!$has_posts) {
+            wp_cache_set($cache_key, '', 'calendar'); // Cache empty string for no posts
+            // Remove filters before returning empty output
+            remove_filter('day_link', 'ajax_ac_filter_day_link', 10);
+            remove_filter('month_link', 'ajax_ac_filter_month_link', 10);
+            if ($echo) {
+                echo '';
+                return;
+            } else {
+                return '';
+            }
+        }
+    }
+
+    // --- Determine Current Month and Year ---
+    $current_year_val = '';
+    $current_month_num = '';
+
+    if (!empty($monthnum) && !empty($year)) {
+        $current_month_num = zeroise(intval($monthnum), 2);
+        $current_year_val = intval($year);
+    } elseif (!empty($m)) {
+        $current_year_val = intval(substr($m, 0, 4));
+        $current_month_num = zeroise(intval(substr($m, 4, 2)), 2);
+    } else {
+        $current_year_val = gmdate('Y', current_time('timestamp'));
+        $current_month_num = gmdate('m', current_time('timestamp'));
+    }
+
+    // Unix timestamp for the first day of the current month
+    $first_day_of_month_unix = mktime(0, 0, 0, $current_month_num, 1, $current_year_val);
+    $days_in_current_month = date('t', $first_day_of_month_unix);
+
+    // --- Calculate Previous and Next Month Details for Navigation ---
+    $prev_month_unix = strtotime('-1 month', $first_day_of_month_unix);
+    $next_month_unix = strtotime('+1 month', $first_day_of_month_unix);
+
+    // get_month_link and get_day_link will now be filtered by ajax_ac_filter_month_link/day_link
+    $prev_month_link = get_month_link(date('Y', $prev_month_unix), date('m', $prev_month_unix));
+    $next_month_link = get_month_link(date('Y', $next_month_unix), date('m', $next_month_unix));
+    $current_month_link = get_month_link($current_year_val, $current_month_num);
+
+    // Get month names based on $is_bengali_enabled flag
+    $prev_month_name = $wp_locale->get_month(date('m', $prev_month_unix));
+    $next_month_name = $wp_locale->get_month(date('m', $next_month_unix));
+    $current_month_name = $wp_locale->get_month($current_month_num);
+
+    if ($is_bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) {
+        if (class_exists('Ajax_AC_Widget') && property_exists('Ajax_AC_Widget', 'month')) {
+            if (isset(Ajax_AC_Widget::$month[date('m', $prev_month_unix)])) {
+                $prev_month_name = Ajax_AC_Widget::$month[date('m', $prev_month_unix)];
+            }
+            if (isset(Ajax_AC_Widget::$month[date('m', $next_month_unix)])) {
+                $next_month_name = Ajax_AC_Widget::$month[date('m', $next_month_unix)];
+            }
+            if (isset(Ajax_AC_Widget::$month[$current_month_num])) {
+                $current_month_name = Ajax_AC_Widget::$month[$current_month_num];
+            }
+        }
+    }
+
+    $current_year_text = ($is_bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) ?
+        str_replace(Ajax_AC_Widget::$find, Ajax_AC_Widget::$replace, $current_year_val) : $current_year_val;
+
+    // --- Calendar HTML Generation Start ---
+    $calendar_output = '<table id="satej_it_com_my_calendar" class="satej_it_com_ajax-calendar">';
+    $calendar_output .= '<thead>';
+
+    // Month Navigation Row (Top)
+    $calendar_output .= '<tr>';
+    $calendar_output .= '<th colspan="7" class="calendar-nav calendar-nav-top">';
+    $calendar_output .= '<div> <a href="' . esc_url($prev_month_link) . '" class="prev-month-link" title="' . esc_attr__('Previous month', 'ajax-archive-calendar') . '">&laquo;</a>';
+    $calendar_output .= '<a href="' . esc_url($current_month_link) . '" class="current-month-link" title="' . esc_attr__('Current month', 'ajax-archive-calendar') . '">' . esc_html($current_month_name) . ' ' . esc_html($current_year_text)  . '</a>';
+    $calendar_output .= '<a href="' . esc_url($next_month_link) . '" class="next-month-link" title="' . esc_attr__('Next month', 'ajax-archive-calendar') . '">&raquo;</a>';
+    $calendar_output .= '</div> </th>';
+    $calendar_output .= '</tr>';
+
+    // Weekday Headers Row
+    $calendar_output .= '<tr>';
+    $week_begins = intval(get_option('start_of_week')); // 0 for Sunday, 1 for Monday, etc.
+    $myweek = array();
+    for ($wd_count = 0; $wd_count <= 6; $wd_count++) {
+        $myweek[] = $wp_locale->get_weekday(($wd_count + $week_begins) % 7);
+    }
+
+    // Bengali weekday names mapping
+    $bengali_weekdays = array(
+        'Saturday'  => 'শনি',
+        'Sunday'    => 'রবি',
+        'Monday'    => 'সোম',
+        'Tuesday'   => 'মঙ্গল',
+        'Wednesday' => 'বুধ',
+        'Thursday'  => 'বৃহ',
+        'Friday'    => 'শুক্র'
+    );
+
+    foreach ($myweek as $weekday) {
+        $display_weekday_name = ($is_bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) ?
+            (isset($bengali_weekdays[$weekday]) ? $bengali_weekdays[$weekday] : $wp_locale->get_weekday_abbrev($weekday)) :
+            $wp_locale->get_weekday_abbrev($weekday);
+        $calendar_output .= "\n\t\t<th class=\"" . esc_attr(sanitize_title($weekday)) . "\" scope=\"col\" title=\"" . esc_attr($weekday) . "\">" . esc_html($display_weekday_name) . "</th>";
+    }
+    $calendar_output .= '</tr>';
+    $calendar_output .= '</thead>';
+
+    $calendar_output .= '<tbody>';
+    $calendar_output .= '<tr>';
+
+    // --- Get Days with Posts ---
+    $posts_in_month = get_posts(array(
+        'post_type'      => $post_type, // Use the provided single post type
+        'post_status'    => 'publish',
+        'monthnum'       => $current_month_num,
+        'year'           => $current_year_val,
+        'numberposts'    => -1, // Get all posts for the month
+        'suppress_filters' => false, // Allow filters to run on this query
+    ));
+
+    $days_with_posts = array();
+    $titles_for_day = array();
+
+    if ($posts_in_month) {
+        $title_separator = (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false) ? "\n" : ', ';
+
+        foreach ((array) $posts_in_month as $post_obj) {
+            $day_of_post = date('j', strtotime($post_obj->post_date));
+            if (!in_array($day_of_post, $days_with_posts)) {
+                $days_with_posts[] = $day_of_post;
+            }
+            $post_title = esc_attr(get_the_title($post_obj));
+            if (empty($titles_for_day[$day_of_post])) {
+                $titles_for_day[$day_of_post] = $post_title;
+            } else {
+                $titles_for_day[$day_of_post] .= $title_separator . $post_title;
+            }
+        }
+    }
+
+    // --- Pad Start of Month ---
+    $first_day_weekday = date('w', $first_day_of_month_unix); // 0 (for Sunday) through 6 (for Saturday)
+    $pad_start = calendar_week_mod($first_day_weekday - $week_begins);
+
+    if ($pad_start != 0) {
+        $calendar_output .= "\n\t\t" . '<td colspan="' . esc_attr($pad_start) . '" class="pad">&nbsp;</td>';
+    }
+
+    // --- Loop Through Days of the Month ---
+    $new_row_needed = false;
+    for ($day = 1; $day <= $days_in_current_month; ++$day) {
+        // Check if a new row is needed (start of a new week)
+        if ($new_row_needed) {
+            $calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
+            $new_row_needed = false;
+        }
+
+        // Apply Bengali number conversion if enabled
+        $display_day_number = ($is_bengali_enabled || 'bn' === substr(get_locale(), 0, 2)) ?
+            str_replace(Ajax_AC_Widget::$find, Ajax_AC_Widget::$replace, $day) : $day;
+
+        // Determine CSS class for the day cell
+        $cell_classes = array('day-cell');
+        if ($day == gmdate('j', current_time('timestamp')) && $current_month_num == gmdate('m', current_time('timestamp')) && $current_year_val == gmdate('Y', current_time('timestamp'))) {
+            $cell_classes[] = 'today';
+        } else {
+            $cell_classes[] = 'not-today';
+        }
+
+        $calendar_output .= '<td class="' . esc_attr(implode(' ', $cell_classes)) . '">';
+
+        // Check if there are posts for this day
+        if (in_array($day, $days_with_posts)) {
+            $calendar_output .= '<a class="has-post" href="' . esc_url(get_day_link($current_year_val, $current_month_num, $day)) . '" title="' . esc_attr($titles_for_day[$day]) . '">' . esc_html($display_day_number) . '</a>';
+        } else {
+            $calendar_output .= '<span class="no-post">' . esc_html($display_day_number) . '</span>';
+        }
+        $calendar_output .= '</td>';
+
+        // Check if it's the end of the week (and not the last day of the month)
+        $current_day_weekday = date('w', mktime(0, 0, 0, $current_month_num, $day, $current_year_val));
+        if (6 == calendar_week_mod($current_day_weekday - $week_begins) && $day < $days_in_current_month) {
+            $new_row_needed = true;
+        }
+    }
+
+    // --- Pad End of Month ---
+    $last_day_weekday = date('w', mktime(0, 0, 0, $current_month_num, $days_in_current_month, $current_year_val));
+    $pad_end = 7 - calendar_week_mod($last_day_weekday - $week_begins) - 1;
+
+    if ($pad_end > 0 && $pad_end < 7) {
+        $calendar_output .= "\n\t\t" . '<td class="pad" colspan="' . esc_attr($pad_end) . '">&nbsp;</td>';
+    }
+
+    $calendar_output .= "\n\t</tr>";
+    $calendar_output .= "\n\t</tbody>";
+
+    // Month Navigation Row (Bottom)
+    $calendar_output .= '<tfoot>';
+    $calendar_output .= '<tr>';
+    $calendar_output .= '<td colspan="3" class="calendar-nav-bottom nav-prev">';
+    $calendar_output .= '<a href="' . esc_url($prev_month_link) . '" title="' . esc_attr__('Previous month', 'ajax-archive-calendar') . '">&laquo; ' . esc_html($prev_month_name) . '</a>';
+    $calendar_output .= '</td>';
+    $calendar_output .= '<td colspan="4" class="calendar-nav-bottom nav-next">';
+    $calendar_output .= '<a href="' . esc_url($next_month_link) . '" title="' . esc_attr__('Next month', 'ajax-archive-calendar') . '">' . esc_html($next_month_name) . ' &raquo;</a>';
+    $calendar_output .= '</td>';
+    $calendar_output .= '</tr>';
+    $calendar_output .= '</tfoot>';
+    $calendar_output .= "\n</table>";
+
+    // --- Remove filters after generating output ---
+    remove_filter('day_link', 'ajax_ac_filter_day_link', 10);
+    remove_filter('month_link', 'ajax_ac_filter_month_link', 10);
+
+    // --- Cache and Return/Echo Output ---
+    wp_cache_set($cache_key, $calendar_output, 'calendar');
+
+    if ($echo) {
+        echo apply_filters('ajax_ac_calendar_output', $calendar_output);
+    } else {
+        return apply_filters('ajax_ac_calendar_output', $calendar_output);
+    }
 }
 
-function ajax_ac_head() {
-	?>
+/**
+ * Adds custom CSS to the WordPress head.
+ */
+add_action('wp_head', 'ajax_ac_head');
+function ajax_ac_head()
+{
+    ?>
+    <style type="text/css">
+        /* General Calendar Table Styling */
+        .satej_it_com_ajax-calendar {
+            position: relative;
+            width: 100%;
+            border-collapse: collapse; /* Ensure borders are collapsed */
+            border-radius: 8px; /* Rounded corners for the whole table */
+            overflow: hidden; /* Ensures border-radius applies to content */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            background-color: #ffffff; /* White background for the calendar body */
+            table-layout: fixed; /* Crucial for equal column widths */
+        }
 
-	<script type="text/javascript">
-	    var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-	</script>
+        /* Table Headers (Weekdays) */
+        .satej_it_com_ajax-calendar th {
+            background-color: #2cb2bc; /* Consistent background */
+            color: #FFFFFF;
+            font-weight: 600; /* Slightly bolder for emphasis */
+            padding: 10px 5px; /* Increased padding for better spacing */
+            text-align: center;
+            font-size: 15px; /* Slightly adjusted font size */
+            text-transform: uppercase; /* Make weekdays uppercase */
+            letter-spacing: 0.5px;
+            width: calc(100% / 7); /* Distribute width equally among 7 columns */
+        }
 
-	<style type="text/css">
-		.ajax-calendar{
-			position:relative;
-		}
+        /* Specific top-left and top-right th for rounded corners */
+        .satej_it_com_ajax-calendar thead tr:first-child th:first-child {
+            border-top-left-radius: 8px;
+        }
+        .satej_it_com_ajax-calendar thead tr:first-child th:last-child {
+            border-top-right-radius: 8px;
+        }
 
-		#ajax_ac_widget th {
-		background: none repeat scroll 0 0 #2cb2bc;
-		color: #FFFFFF;
-		font-weight: normal;
-		padding: 5px 1px;
-		text-align: center;
-		 font-size: 16px;
-		}
-		#ajax_ac_widget {
-			padding: 5px;
-		}
-		
-		#ajax_ac_widget td {
-			border: 1px solid #CCCCCC;
-			text-align: center;
-		}
-		
-		#my-calendar a {
-			background: none repeat scroll 0 0 #008000;
-			color: #FFFFFF;
-			display: block;
-			padding: 6px 0;
-			width: 100% !important;
-		}
-		#my-calendar{
-			width:100%;
-		}
-		
-		
-		#my_calender span {
-			display: block;
-			padding: 6px 0;
-			width: 100% !important;
-		}
-		
-		#today a,#today span {
-			   background: none repeat scroll 0 0 #2cb2bc !important;
-			color: #FFFFFF;
-		}
-		#ajax_ac_widget #my_year {
-			float: right;
-		}
-		.select_ca #my_month {
-			float: left;
-		}
+        /* Table Cells (Days) */
+        .satej_it_com_ajax-calendar td {
+            border: 1px solid #e0e0e0; /* Lighter border color */
+            padding: 0; /* Remove default padding from td, let inner elements handle it */
+            vertical-align: middle; /* Vertically center content */
+            height: 50px; /* Give cells a consistent height */
+        }
 
-	</style>
-	<?php
+        /* Links for days with posts */
+        .satej_it_com_ajax-calendar tbody td a.has-post {
+            background-color: #00a000; /* A slightly brighter green */
+            color: #FFFFFF;
+            display: flex; /* Keep flex for inner centering */
+            align-items: center; /* Vertically center content */
+            justify-content: center; /* Horizontally center content */
+            padding: 6px 0;
+            width: 100%;
+            height: 100%; /* Make the link fill the cell */
+            text-decoration: none; /* Remove underline */
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out; /* Smooth transition on hover */
+        }
+
+        .satej_it_com_ajax-calendar tbody td a.has-post:hover {
+            background-color: #006400; /* Darker green on hover */
+        }
+
+        /* Spans for days without posts */
+        .satej_it_com_ajax-calendar span.no-post {
+            display: flex; /* Keep flex for inner centering */
+            align-items: center; /* Vertically center content */
+            justify-content: center; /* Horizontally center content */
+            padding: 6px 0;
+            width: 100%;
+            height: 100%; /* Make the span fill the cell */
+            color: #555555; /* Softer text color for days without posts */
+        }
+
+        /* Padding cells (empty cells) */
+        .satej_it_com_ajax-calendar .pad {
+            background-color: #f9f9f9; /* Slightly different background for padding cells */
+        }
+
+        /* Today's Date Styling */
+        .satej_it_com_ajax-calendar td.today {
+            border: 2px solid #2cb2bc; /* More prominent border for today */
+        }
+
+        .satej_it_com_ajax-calendar td.today a,
+        .satej_it_com_ajax-calendar td.today span {
+            background-color: #2cb2bc !important; /* Keep important to override other backgrounds */
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+
+        /* Navigation (Top) */
+        .satej_it_com_ajax-calendar .calendar-nav-top {
+            background-color: #2cb2bc; /* Consistent background */
+            padding: 10px 0; /* Add padding */
+            border-bottom: 1px solid #259fa8; /* Subtle separator */
+        }
+
+        .satej_it_com_ajax-calendar .calendar-nav-top div {
+            display: flex;
+            justify-content: space-between; /* Changed to space-between for better distribution */
+            align-items: center;
+            padding: 0 15px; /* Add horizontal padding inside the nav */
+        }
+
+        .satej_it_com_ajax-calendar .calendar-nav-top a {
+            color: #FFFFFF;
+            font-size: 20px; /* Slightly smaller for better balance */
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .satej_it_com_ajax-calendar .calendar-nav-top a:hover {
+            background-color: rgba(255, 255, 255, 0.2); /* Subtle hover effect */
+        }
+
+        .satej_it_com_ajax-calendar .calendar-nav-top .current-month-link {
+            font-size: 22px; /* Emphasize current month */
+            font-weight: bold;
+            color: #FFFFFF;
+            text-decoration: none;
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        /* Navigation (Bottom) */
+        .satej_it_com_ajax-calendar tfoot td {
+            border: none; /* Remove borders from footer cells */
+            padding: 0; /* Remove default padding */
+        }
+
+        .satej_it_com_ajax-calendar tfoot td a {
+            background-color: #2cb2bc; /* Consistent background */
+            color: #FFFFFF;
+            display: block;
+            padding: 10px 0; /* More padding for better touch targets */
+            width: 100% !important;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .satej_it_com_ajax-calendar tfoot td a:hover {
+            background-color: #259fa8; /* Slightly darker on hover */
+        }
+
+        .satej_it_com_ajax-calendar tfoot .nav-prev {
+            text-align: left;
+            border-bottom-left-radius: 8px; /* Rounded corner */
+            overflow: hidden; /* Ensure radius applies */
+        }
+
+        .satej_it_com_ajax-calendar tfoot .nav-next {
+            text-align: right;
+            border-bottom-right-radius: 8px; /* Rounded corner */
+            overflow: hidden; /* Ensure radius applies */
+        }
+
+        .satej_it_com_ajax-calendar tfoot .nav-prev a {
+            padding-left: 15px; /* Adjust padding for text alignment */
+        }
+
+        .satej_it_com_ajax-calendar tfoot .nav-next a {
+            padding-right: 15px; /* Adjust padding for text alignment */
+        }
+
+
+        /* Dropdown Selectors */
+        #ajax_ac_widget .select_ca {
+            margin-bottom: 10px; /* Add some space below dropdowns */
+            display: flex; /* Use flexbox for better alignment of dropdowns */
+            justify-content: space-between; /* Distribute items */
+            gap: 10px; /* Space between dropdowns */
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+
+        #ajax_ac_widget #my_month,
+        #ajax_ac_widget #my_year {
+            /* Remove floats as flexbox is used on parent */
+            float: none;
+            flex-grow: 1; /* Allow dropdowns to grow and fill space */
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            font-size: 16px;
+            cursor: pointer;
+            -webkit-appearance: none; /* Remove default dropdown arrow */
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M287%2C114.7L158.4%2C243.3c-2.8%2C2.8-6.1%2C4.2-9.5%2C4.2s-6.7-1.4-9.5-4.2L5.4%2C114.7C2.6%2C111.9%2C1.2%2C108.6%2C1.2%2C105.2s1.4-6.7%2C4.2-9.5l14.7-14.7c2.8-2.8%2C6.1-4.2%2C9.5-4.2s6.7%2C1.4%2C9.5%2C4.2l111.2%2C111.2L253.3%2C81c2.8-2.8%2C6.1-4.2%2C9.5-4.2s6.7%2C1.4%2C9.5%2C4.2l14.7%2C14.7c2.8%2C2.8%2C4.2%2C6.1%2C4.2%2C9.5S289.8%2C111.9%2C287%2C114.7z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px; /* Make space for the custom arrow */
+        }
+
+        /* Clearfix for floats (if still needed, though flexbox mitigates) */
+        .clear {
+            clear: both;
+        }
+
+        /* Loading Indicator */
+        .aj-loging {
+            position: absolute;
+            top: 0; /* Cover the whole calendar area */
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white overlay */
+            display: flex; /* Use flexbox to center content */
+            align-items: center;
+            justify-content: center;
+            z-index: 10; /* Ensure it's on top */
+            border-radius: 8px; /* Match calendar border-radius */
+        }
+
+        .aj-loging img {
+            max-width: 50px; /* Adjust size of loading GIF */
+            max-height: 50px;
+        }
+    </style>
+    <?php
 }
-
-add_filter('wp_head', 'ajax_ac_head');
 
 /**
  * Workaround WPML bug with get_day_link() function.
- * 
+ *
  * @param string $url
- * @return stringe
+ * @return string
  */
-function ajax_ac_permalinks( $url ) {
-	return apply_filters('wpml_permalink',  $url );
-}
-
 add_filter('day_link', 'ajax_ac_permalinks');
-
+function ajax_ac_permalinks($url)
+{
+    return apply_filters('wpml_permalink',  $url);
+}
 
 /**
  * Create WP short code for Ajax Archive Calendar
  *
- * @param array $atts
- * @return void
+ * @param array $atts Shortcode attributes.
+ * @return string The HTML output for the calendar.
  */
+add_shortcode('ajax_archive_calendar', 'ajax_archive_calendar_shortcode');
 
-//[ajax_archive_calendar]
-function ajax_archive_calendar( $atts ){
+function ajax_archive_calendar_shortcode($atts)
+{
+    $atts = shortcode_atts(
+        array(
+            'bengali' => 0, // Default to 0 (false)
+            'start'   => date("Y"), // Default to current year
+            'post_type' => 'post' // Default to 'post' (single)
+        ),
+        $atts,
+        'ajax_archive_calendar'
+    );
 
-    if(key_exists("bengali",$atts)){
-        $bengali = 1;
-    } else {
-	    $bengali = 0;
+    $bengali_enabled = (bool) $atts['bengali'];
+    $start_year = absint($atts['start']);
+    
+    // Ensure post_type is a single sanitized string
+    $post_type = sanitize_key($atts['post_type']);
+    if (empty($post_type)) {
+        $post_type = 'post'; // Fallback if empty
     }
 
-	if(key_exists("start",$atts) && is_numeric($atts["start"])){
-		$start = $atts["start"];
-	} else {
-		$start = date("Y");
-	}
-
-    $ajax_ac_widget = new ajax_ac_widget();
-	return $ajax_ac_widget->calender_html($bengali,$start);
+    $ajax_ac_widget = new Ajax_AC_Widget();
+    return $ajax_ac_widget->generate_calendar_html($bengali_enabled, $start_year, $post_type);
 }
-
-add_shortcode( 'ajax_archive_calendar', 'ajax_archive_calendar' );
